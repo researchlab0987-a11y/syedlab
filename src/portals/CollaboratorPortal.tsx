@@ -1,4 +1,9 @@
 import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from "firebase/auth";
+import {
   addDoc,
   collection,
   deleteDoc,
@@ -9,6 +14,7 @@ import {
   where,
 } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
+import AppIcon from "../components/AppIcon";
 import CloudinaryUpload from "../components/CloudinaryUpload";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/config";
@@ -19,10 +25,10 @@ import type {
   ResearchIdea,
 } from "../types";
 
-type Tab = "profile" | "ideas";
+type Tab = "profile" | "ideas" | "security";
 
 const CollaboratorPortal: React.FC = () => {
-  const { appUser, logout } = useAuth();
+  const { appUser, logout, firebaseUser } = useAuth();
   const [tab, setTab] = useState<Tab>("profile");
   const [profile, setProfile] = useState<CollaboratorProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +76,6 @@ const CollaboratorPortal: React.FC = () => {
     background: "transparent",
   });
 
-  // Use profile name if available, fallback to appUser name
   const displayName = profile?.name || appUser?.name || "";
   const displayPhoto = profile?.photo || "";
 
@@ -140,6 +145,12 @@ const CollaboratorPortal: React.FC = () => {
           >
             My Research Ideas
           </button>
+          <button
+            style={tabStyle(tab === "security")}
+            onClick={() => setTab("security")}
+          >
+            Security
+          </button>
           <a
             href="/"
             className="ml-auto self-center text-xs font-semibold no-underline"
@@ -150,12 +161,7 @@ const CollaboratorPortal: React.FC = () => {
         </div>
 
         {tab === "profile" && profile && (
-          <EditProfile
-            profile={profile}
-            onSaved={(p) => {
-              setProfile(p);
-            }}
-          />
+          <EditProfile profile={profile} onSaved={setProfile} />
         )}
         {tab === "ideas" && appUser && (
           <MyIdeas
@@ -164,6 +170,214 @@ const CollaboratorPortal: React.FC = () => {
             authorPhoto={displayPhoto}
           />
         )}
+        {tab === "security" && firebaseUser && (
+          <ChangePassword
+            firebaseUser={firebaseUser}
+            userEmail={appUser?.email ?? ""}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Change Password ────────────────────────────────────────────
+import type { User as FirebaseUser } from "firebase/auth";
+
+const ChangePassword: React.FC<{
+  firebaseUser: FirebaseUser;
+  userEmail: string;
+}> = ({ firebaseUser, userEmail }) => {
+  const [form, setForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess(false);
+
+    if (form.newPassword.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    if (form.newPassword !== form.confirmPassword) {
+      setError("New passwords do not match.");
+      return;
+    }
+    if (form.currentPassword === form.newPassword) {
+      setError("New password must be different from current password.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Re-authenticate first (Firebase requires this before password change)
+      const credential = EmailAuthProvider.credential(
+        userEmail,
+        form.currentPassword,
+      );
+      await reauthenticateWithCredential(firebaseUser, credential);
+
+      // Now update password
+      await updatePassword(firebaseUser, form.newPassword);
+
+      setSuccess(true);
+      setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (err: any) {
+      if (
+        err.code === "auth/wrong-password" ||
+        err.code === "auth/invalid-credential"
+      ) {
+        setError("Current password is incorrect.");
+      } else if (err.code === "auth/weak-password") {
+        setError("Password is too weak. Use at least 8 characters.");
+      } else {
+        setError("Failed to update password. Please try again.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp = "w-full px-3 py-2.5 text-sm rounded-xl border outline-none";
+  const inpStyle = { borderColor: "#e5e7eb" };
+
+  return (
+    <div className="pb-16 max-w-md">
+      <h2
+        className="text-xl font-black mb-6"
+        style={{ color: "var(--color-primary)" }}
+      >
+        Change Password
+      </h2>
+
+      <div
+        className="bg-white rounded-2xl p-6 shadow-sm border"
+        style={{ borderColor: "#e5e7eb" }}
+      >
+        {success && (
+          <div
+            className="rounded-xl p-3 mb-4 text-sm font-semibold text-green-700"
+            style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}
+          >
+            Password updated successfully.
+          </div>
+        )}
+
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              Current Password *
+            </label>
+            <input
+              required
+              type="password"
+              className={inp}
+              style={inpStyle}
+              value={form.currentPassword}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, currentPassword: e.target.value }))
+              }
+              placeholder="Enter your current password"
+              autoComplete="current-password"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              New Password *{" "}
+              <span className="text-gray-400 font-normal">
+                (min. 8 characters)
+              </span>
+            </label>
+            <input
+              required
+              type="password"
+              className={inp}
+              style={inpStyle}
+              value={form.newPassword}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, newPassword: e.target.value }))
+              }
+              placeholder="Enter new password"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              Confirm New Password *
+            </label>
+            <input
+              required
+              type="password"
+              className={inp}
+              style={{
+                ...inpStyle,
+                borderColor:
+                  form.confirmPassword &&
+                  form.confirmPassword !== form.newPassword
+                    ? "#ef4444"
+                    : form.confirmPassword &&
+                        form.confirmPassword === form.newPassword
+                      ? "#22c55e"
+                      : "#e5e7eb",
+              }}
+              value={form.confirmPassword}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, confirmPassword: e.target.value }))
+              }
+              placeholder="Re-enter new password"
+              autoComplete="new-password"
+            />
+            {form.confirmPassword &&
+              form.confirmPassword !== form.newPassword && (
+                <p className="text-xs text-red-500 mt-1">
+                  Passwords do not match
+                </p>
+              )}
+            {form.confirmPassword &&
+              form.confirmPassword === form.newPassword && (
+                <p className="text-xs text-green-600 mt-1">✓ Passwords match</p>
+              )}
+          </div>
+
+          {error && (
+            <div
+              className="rounded-xl p-3 text-sm text-red-700"
+              style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+            >
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="font-bold px-6 py-2.5 rounded-xl text-white text-sm disabled:opacity-60 border-none cursor-pointer"
+            style={{ background: "var(--color-primary)" }}
+          >
+            {saving ? "Updating..." : "Update Password"}
+          </button>
+        </form>
+
+        <div
+          className="mt-5 pt-4 border-t text-xs text-gray-400"
+          style={{ borderColor: "#f0f0f0" }}
+        >
+          <p>Tips for a strong password:</p>
+          <ul className="mt-1 list-disc list-inside space-y-0.5">
+            <li>At least 8 characters long</li>
+            <li>Mix of uppercase and lowercase letters</li>
+            <li>Include numbers and symbols (@, #, $, !)</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -244,7 +458,6 @@ const EditProfile: React.FC<{
         </button>
       </div>
 
-      {/* Photo */}
       <div
         className="bg-white rounded-2xl p-6 shadow-sm border mb-6"
         style={{ borderColor: "#e5e7eb" }}
@@ -256,14 +469,12 @@ const EditProfile: React.FC<{
         />
       </div>
 
-      {/* Basic Info — now includes Name */}
       <div
         className="bg-white rounded-2xl p-6 shadow-sm border mb-6"
         style={{ borderColor: "#e5e7eb" }}
       >
         <h3 className="font-bold text-sm text-gray-700 mb-4">Basic Info</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Name field added here */}
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">
               Full Name
@@ -328,7 +539,6 @@ const EditProfile: React.FC<{
         </div>
       </div>
 
-      {/* Social Links */}
       <div
         className="bg-white rounded-2xl p-6 shadow-sm border mb-6"
         style={{ borderColor: "#e5e7eb" }}
@@ -360,7 +570,6 @@ const EditProfile: React.FC<{
         </div>
       </div>
 
-      {/* Publications */}
       <div
         className="bg-white rounded-2xl p-6 shadow-sm border"
         style={{ borderColor: "#e5e7eb" }}
@@ -436,14 +645,14 @@ const MyIdeas: React.FC<{
 
   const load = async () => {
     setLoading(true);
-    // Query by authorId (real uid for ideas posted via portal)
     const snap = await getDocs(
       query(collection(db, "researchIdeas"), where("authorId", "==", authorId)),
     );
-    const results = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as ResearchIdea)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    setIdeas(results);
+    setIdeas(
+      snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as ResearchIdea)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    );
     setLoading(false);
   };
 
@@ -607,11 +816,10 @@ const MyIdeas: React.FC<{
         </div>
       ) : ideas.length === 0 ? (
         <div className="text-center py-16">
-          <div className="text-4xl mb-3">💡</div>
+          <div className="mb-3 inline-flex text-gray-400">
+            <AppIcon name="ideas" size={36} />
+          </div>
           <p className="text-gray-400">You haven't posted any ideas yet.</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Click "+ Post New Idea" to share a research idea with collaborators.
-          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">

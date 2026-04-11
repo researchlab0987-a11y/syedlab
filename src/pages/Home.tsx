@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import AppIcon, { type AppIconName } from "../components/AppIcon";
 import {
   useAnnouncements,
   useCollaborators,
@@ -59,22 +60,22 @@ const Home: React.FC = () => {
     {
       value: collaborators.length,
       label: content["home.statsLabel1"] ?? "Collaborators",
-      icon: "👥",
+      icon: "collaborators" as AppIconName,
     },
     {
       value: published.length,
       label: content["home.statsLabel2"] ?? "Publications",
-      icon: "📄",
+      icon: "paper" as AppIconName,
     },
     {
       value: ongoing.length,
       label: content["home.statsLabel3"] ?? "Ongoing Projects",
-      icon: "🔬",
+      icon: "lab" as AppIconName,
     },
     {
       value: ideas.length,
       label: content["home.statsLabel4"] ?? "Research Ideas",
-      icon: "💡",
+      icon: "ideas" as AppIconName,
     },
   ];
 
@@ -402,7 +403,9 @@ const Home: React.FC = () => {
                     : "none",
               }}
             >
-              <div className="text-xl mb-1">{s.icon}</div>
+              <div className="mb-1 inline-flex text-white/80">
+                <AppIcon name={s.icon} size={20} />
+              </div>
               <div
                 className="text-3xl font-black leading-none"
                 style={{
@@ -564,21 +567,21 @@ const Home: React.FC = () => {
           {[
             {
               to: "/collaborators",
-              icon: "🤝",
+              icon: "handshake" as AppIconName,
               title: "Collaborators",
               desc: "Meet the researchers behind our work.",
               color: "var(--color-primary)",
             },
             {
               to: "/publications",
-              icon: "📚",
+              icon: "publications" as AppIconName,
               title: "Publications",
               desc: "Explore our published and ongoing research.",
               color: "var(--color-secondary)",
             },
             {
               to: "/research-ideas",
-              icon: "💡",
+              icon: "ideas" as AppIconName,
               title: "Research Ideas",
               desc: "Discover open research questions and collaborate.",
               color: "#f59e0b",
@@ -607,7 +610,7 @@ const Home: React.FC = () => {
                 className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                 style={{ background: `${item.color}15` }}
               >
-                {item.icon}
+                <AppIcon name={item.icon} size={20} />
               </div>
               <div>
                 <p
@@ -887,8 +890,9 @@ const TeamAndGallery: React.FC<{
                     )}
 
                     {collab.affiliation && (
-                      <p className="text-sm text-gray-400 mt-2 font-medium">
-                        🏛 {collab.affiliation}
+                      <p className="text-sm text-gray-400 mt-2 font-medium inline-flex items-center gap-1.5">
+                        <AppIcon name="building" size={14} />{" "}
+                        {collab.affiliation}
                       </p>
                     )}
 
@@ -1024,7 +1028,7 @@ const TeamAndGallery: React.FC<{
                       className="w-full h-full flex items-center justify-center"
                       style={{ background: "#f3f4f6" }}
                     >
-                      <span className="text-5xl">🖼️</span>
+                      <AppIcon name="gallery" size={42} />
                     </div>
                   )}
 
@@ -1412,11 +1416,13 @@ const LabHeadModal: React.FC<{
                       className="text-xs font-semibold flex items-center gap-2"
                       style={{ color: "var(--color-secondary)" }}
                     >
-                      ✉ {labHead.email}
+                      <AppIcon name="contact" size={13} /> {labHead.email}
                     </a>
                   )}
                   {labHead.phone && (
-                    <p className="text-xs text-gray-600">📞 {labHead.phone}</p>
+                    <p className="text-xs text-gray-600 inline-flex items-center gap-1.5">
+                      <AppIcon name="phone" size={13} /> {labHead.phone}
+                    </p>
                   )}
                 </div>
               </div>

@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from "react";
 import type { CloudinaryUploadResult } from "../types";
+import AppIcon from "./AppIcon";
 
 interface Props {
   onUpload: (result: CloudinaryUploadResult) => void;
@@ -156,7 +157,9 @@ const CloudinaryUpload: React.FC<Props> = ({
             </div>
           ) : (
             <>
-              <div className="text-3xl mb-2">🖼️</div>
+              <div className="mb-2 text-gray-500">
+                <AppIcon name="gallery" size={30} />
+              </div>
               <p className="text-sm font-semibold text-gray-700">
                 Drag & drop or click to upload
               </p>

@@ -92,6 +92,7 @@ export interface Comment {
   authorName: string;
   authorPhoto: string;
   content: string;
+  parentId?: string | null;
   createdAt: string;
 }
 
@@ -177,6 +178,13 @@ export interface SiteContent {
   "contact.mapEmbed": string;
   "contact.formTitle": string;
   "contact.successMessage": string;
+  //banner for all tabs
+  "about.bannerUrl": string;
+  "collaborators.bannerUrl": string;
+  "publications.bannerUrl": string;
+  "ideas.bannerUrl": string;
+  "contact.bannerUrl": string;
+  "gallery.bannerUrl": string;
   [key: string]: string;
 }
 

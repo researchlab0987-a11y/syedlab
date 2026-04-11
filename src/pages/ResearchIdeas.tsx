@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useResearchIdeas, useSiteContent } from '../firebase/hooks';
-import { useAuth } from '../context/AuthContext';
-import IdeaCard from '../components/IdeaCard';
+import { addDoc, collection } from "firebase/firestore";
+import React, { useState } from "react";
+import AppIcon from "../components/AppIcon";
+import IdeaCard from "../components/IdeaCard";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase/config";
+import { useResearchIdeas, useSiteContent } from "../firebase/hooks";
 
 const ResearchIdeas: React.FC = () => {
   const { ideas, loading } = useResearchIdeas();
   const { content } = useSiteContent();
   const { role, appUser } = useAuth();
   const [showModal, setShowModal] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  const canPost = role === 'collaborator' || role === 'admin';
+  const canPost = role === "collaborator" || role === "admin";
 
   const filtered = ideas.filter(
     (i) =>
@@ -21,24 +22,53 @@ const ResearchIdeas: React.FC = () => {
       i.tags?.some((t) => t.toLowerCase().includes(search.toLowerCase())),
   );
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
-        style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div
+          className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
+          style={{
+            borderColor: "var(--color-primary)",
+            borderTopColor: "transparent",
+          }}
+        />
+      </div>
+    );
 
   return (
     <div>
       {/* Hero */}
-      <section className="py-20 text-center px-4" style={{ background: 'var(--color-primary)' }}>
-        <h1 className="font-black text-white mb-4"
-          style={{ fontSize: 'clamp(2rem,4vw,3rem)', fontFamily: 'var(--font-heading)' }}>
-          {content['ideas.pageTitle'] ?? 'Research Ideas'}
-        </h1>
-        <p className="text-base max-w-xl mx-auto" style={{ color: 'rgba(255,255,255,0.75)' }}>
-          {content['ideas.pageSubtitle'] ?? 'Explore and discuss cutting-edge research ideas from our collaborators.'}
-        </p>
+      <section
+        className="relative overflow-hidden py-20 text-center px-4"
+        style={{ background: "var(--color-primary)" }}
+      >
+        {content["ideas.bannerUrl"] && (
+          <img
+            src={content["ideas.bannerUrl"]}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: "brightness(0.45)" }}
+          />
+        )}
+
+        <div className="relative z-10">
+          <h1
+            className="font-black text-white mb-4"
+            style={{
+              fontSize: "clamp(2rem,4vw,3rem)",
+              fontFamily: "var(--font-heading)",
+            }}
+          >
+            {content["ideas.pageTitle"] ?? "Research Ideas"}
+          </h1>
+          <p
+            className="text-base max-w-xl mx-auto"
+            style={{ color: "rgba(255,255,255,0.75)" }}
+          >
+            {content["ideas.pageSubtitle"] ??
+              "Explore and discuss cutting-edge research ideas from our collaborators."}
+          </p>
+        </div>
       </section>
 
       <div className="max-w-6xl mx-auto px-4 py-12">
@@ -50,13 +80,17 @@ const ResearchIdeas: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search ideas, tags..."
             className="text-sm px-4 py-2.5 rounded-xl border outline-none w-full sm:w-72"
-            style={{ borderColor: '#d1d5db' }}
+            style={{ borderColor: "#d1d5db" }}
           />
           {canPost && (
             <button
               onClick={() => setShowModal(true)}
               className="font-bold text-sm px-6 py-2.5 rounded-xl text-white whitespace-nowrap"
-              style={{ background: 'var(--color-primary)', border: 'none', cursor: 'pointer' }}
+              style={{
+                background: "var(--color-primary)",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
               + Post Idea
             </button>
@@ -71,9 +105,11 @@ const ResearchIdeas: React.FC = () => {
         {/* Grid */}
         {filtered.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-5xl mb-4">💡</div>
+            <div className="mb-4 inline-flex text-gray-400">
+              <AppIcon name="ideas" size={42} />
+            </div>
             <p className="text-gray-400 text-base">
-              {content['ideas.emptyText'] ?? 'No research ideas posted yet.'}
+              {content["ideas.emptyText"] ?? "No research ideas posted yet."}
             </p>
           </div>
         ) : (
@@ -103,51 +139,58 @@ interface PostIdeaModalProps {
   onClose: () => void;
 }
 
-const PostIdeaModal: React.FC<PostIdeaModalProps> = ({ authorId, authorName, onClose }) => {
+const PostIdeaModal: React.FC<PostIdeaModalProps> = ({
+  authorId,
+  authorName,
+  onClose,
+}) => {
   const [form, setForm] = useState({
-    title: '',
-    shortDescription: '',
-    fullDescription: '',
-    tags: '',
+    title: "",
+    shortDescription: "",
+    fullDescription: "",
+    tags: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.shortDescription || !form.fullDescription) {
-      setError('Please fill all required fields.');
+      setError("Please fill all required fields.");
       return;
     }
     setSubmitting(true);
     try {
-      await addDoc(collection(db, 'researchIdeas'), {
+      await addDoc(collection(db, "researchIdeas"), {
         title: form.title.trim(),
         shortDescription: form.shortDescription.trim(),
         fullDescription: form.fullDescription.trim(),
-        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
+        tags: form.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
         authorId,
         authorName,
-        authorPhoto: '',
+        authorPhoto: "",
         commentCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
       onClose();
     } catch {
-      setError('Failed to post idea. Please try again.');
+      setError("Failed to post idea. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inp = 'w-full px-3 py-2.5 text-sm rounded-lg border outline-none';
-  const inpStyle = { borderColor: '#d1d5db', fontFamily: 'var(--font-body)' };
+  const inp = "w-full px-3 py-2.5 text-sm rounded-lg border outline-none";
+  const inpStyle = { borderColor: "#d1d5db", fontFamily: "var(--font-body)" };
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.55)' }}
+      style={{ background: "rgba(0,0,0,0.55)" }}
       onClick={onClose}
     >
       <div
@@ -156,61 +199,80 @@ const PostIdeaModal: React.FC<PostIdeaModalProps> = ({ authorId, authorName, onC
       >
         <div
           className="flex items-center justify-between px-6 py-4"
-          style={{ background: 'var(--color-primary)' }}
+          style={{ background: "var(--color-primary)" }}
         >
-          <h2 className="text-white font-black text-lg">Post a Research Idea</h2>
+          <h2 className="text-white font-black text-lg">
+            Post a Research Idea
+          </h2>
           <button
             onClick={onClose}
             className="text-white text-2xl bg-transparent border-none cursor-pointer leading-none"
-          >×</button>
+          >
+            ×
+          </button>
         </div>
 
         <form onSubmit={submit} className="p-6 flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Title *</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+              Title *
+            </label>
             <input
               required
               className={inp}
               style={inpStyle}
               value={form.title}
-              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, title: e.target.value }))
+              }
               placeholder="e.g. Federated Learning for Healthcare Privacy"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              Short Description * <span className="text-gray-400 font-normal">(shown on card)</span>
+              Short Description *{" "}
+              <span className="text-gray-400 font-normal">(shown on card)</span>
             </label>
             <textarea
               required
               rows={2}
               className={inp}
-              style={{ ...inpStyle, resize: 'none' }}
+              style={{ ...inpStyle, resize: "none" }}
               value={form.shortDescription}
-              onChange={(e) => setForm((p) => ({ ...p, shortDescription: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, shortDescription: e.target.value }))
+              }
               placeholder="One or two sentences summarising the idea..."
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              Full Description * <span className="text-gray-400 font-normal">(shown on detail page)</span>
+              Full Description *{" "}
+              <span className="text-gray-400 font-normal">
+                (shown on detail page)
+              </span>
             </label>
             <textarea
               required
               rows={6}
               className={inp}
-              style={{ ...inpStyle, resize: 'vertical' }}
+              style={{ ...inpStyle, resize: "vertical" }}
               value={form.fullDescription}
-              onChange={(e) => setForm((p) => ({ ...p, fullDescription: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, fullDescription: e.target.value }))
+              }
               placeholder="Detailed description of the research idea, motivation, methods, expected outcomes..."
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              Tags <span className="text-gray-400 font-normal">(comma separated)</span>
+              Tags{" "}
+              <span className="text-gray-400 font-normal">
+                (comma separated)
+              </span>
             </label>
             <input
               className={inp}
@@ -228,7 +290,11 @@ const PostIdeaModal: React.FC<PostIdeaModalProps> = ({ authorId, authorName, onC
               type="button"
               onClick={onClose}
               className="text-sm font-semibold px-5 py-2 rounded-lg border cursor-pointer"
-              style={{ borderColor: '#d1d5db', background: 'white', color: '#374151' }}
+              style={{
+                borderColor: "#d1d5db",
+                background: "white",
+                color: "#374151",
+              }}
             >
               Cancel
             </button>
@@ -236,9 +302,13 @@ const PostIdeaModal: React.FC<PostIdeaModalProps> = ({ authorId, authorName, onC
               type="submit"
               disabled={submitting}
               className="text-sm font-bold px-6 py-2 rounded-lg text-white disabled:opacity-60"
-              style={{ background: 'var(--color-primary)', border: 'none', cursor: 'pointer' }}
+              style={{
+                background: "var(--color-primary)",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
-              {submitting ? 'Posting...' : 'Post Idea'}
+              {submitting ? "Posting..." : "Post Idea"}
             </button>
           </div>
         </form>

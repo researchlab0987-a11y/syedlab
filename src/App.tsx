@@ -20,6 +20,7 @@ import ResearchIdeas from "./pages/ResearchIdeas";
 import AdminDashboard from "./portals/AdminDashboard";
 import CollaboratorPortal from "./portals/CollaboratorPortal";
 
+import DeveloperProfile from "./pages/DeveloperProfile";
 import Gallery from "./pages/Gallery";
 
 const App: React.FC = () => {
@@ -29,72 +30,78 @@ const App: React.FC = () => {
         <ThemeProvider>
           <div className="flex flex-col min-h-screen">
             <Navbar />
-            <div className="flex-1">
-              <Routes>
-                {/* Public pages */}
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/collaborators" element={<Collaborators />} />
-                <Route path="/publications" element={<Publications />} />
-                <Route path="/research-ideas" element={<ResearchIdeas />} />
-                <Route path="/research-ideas/:id" element={<IdeaDetail />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/gallery" element={<Gallery />} />
-                <Route path="/login" element={<Login />} />
-
-                {/* Admin portal */}
-                <Route
-                  path="/admin/*"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={["admin"]}
-                      redirectTo="/login"
-                    >
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Collaborator portal */}
-                <Route
-                  path="/collaborator-portal"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={["collaborator"]}
-                      redirectTo="/login"
-                    >
-                      <CollaboratorPortal />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* 404 */}
-                <Route
-                  path="*"
-                  element={
-                    <div className="flex items-center justify-center min-h-[60vh] text-center px-4">
-                      <div>
-                        <h1
-                          className="text-6xl font-black mb-4"
-                          style={{ color: "var(--color-primary)" }}
-                        >
-                          404
-                        </h1>
-                        <p className="text-gray-500 mb-6">Page not found.</p>
-                        <a
-                          href="/"
-                          className="font-bold text-sm px-6 py-3 rounded-xl text-white no-underline"
-                          style={{ background: "var(--color-primary)" }}
-                        >
-                          Go Home
-                        </a>
+            <div
+              id="app-layout-content"
+              className="flex flex-col flex-1 min-w-0"
+            >
+              <div className="flex-1">
+                <Routes>
+                  {/* Public pages */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/collaborators" element={<Collaborators />} />
+                  <Route path="/publications" element={<Publications />} />
+                  <Route path="/research-ideas" element={<ResearchIdeas />} />
+                  <Route path="/research-ideas/:id" element={<IdeaDetail />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/gallery" element={<Gallery />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/secret-developer"
+                    element={<DeveloperProfile />}
+                  />
+                  {/* Admin portal */}
+                  <Route
+                    path="/admin/*"
+                    element={
+                      <ProtectedRoute
+                        allowedRoles={["admin"]}
+                        redirectTo="/login"
+                      >
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* Collaborator portal */}
+                  <Route
+                    path="/collaborator-portal"
+                    element={
+                      <ProtectedRoute
+                        allowedRoles={["collaborator"]}
+                        redirectTo="/login"
+                      >
+                        <CollaboratorPortal />
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* 404 */}
+                  <Route
+                    path="*"
+                    element={
+                      <div className="flex items-center justify-center min-h-[60vh] text-center px-4">
+                        <div>
+                          <h1
+                            className="text-6xl font-black mb-4"
+                            style={{ color: "var(--color-primary)" }}
+                          >
+                            404
+                          </h1>
+                          <p className="text-gray-500 mb-6">Page not found.</p>
+                          <a
+                            href="/"
+                            className="font-bold text-sm px-6 py-3 rounded-xl text-white no-underline"
+                            style={{ background: "var(--color-primary)" }}
+                          >
+                            Go Home
+                          </a>
+                        </div>
                       </div>
-                    </div>
-                  }
-                />
-              </Routes>
+                    }
+                  />
+                </Routes>
+              </div>
+              <Footer />
             </div>
-            <Footer />
           </div>
         </ThemeProvider>
       </AuthProvider>

@@ -34,6 +34,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root[data-theme-mode="dark"] body {
+  color: #e5e7eb;
+  background-color: var(--color-bg);
+}
+
 h1,
 h2,
 h3,
@@ -167,4 +172,143 @@ aside {
   to {
     transform: scale(1.08);
   }
+}
+
+@media (min-width: 1024px) {
+  body.nav-vertical #app-layout-content {
+    margin-left: var(--app-sidebar-width, 220px);
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Global dark fallback for existing light utility/inline styles */
+:root[data-theme-mode="dark"] .bg-white {
+  background-color: #111827;
+}
+
+:root[data-theme-mode="dark"] .bg-gray-50,
+:root[data-theme-mode="dark"] .bg-gray-100 {
+  background-color: #0f172a;
+}
+
+:root[data-theme-mode="dark"] .text-gray-900 {
+  color: #f3f4f6;
+}
+
+:root[data-theme-mode="dark"] .text-gray-800 {
+  color: #e5e7eb;
+}
+
+:root[data-theme-mode="dark"] .text-gray-700 {
+  color: #d1d5db;
+}
+
+:root[data-theme-mode="dark"] .text-gray-600,
+:root[data-theme-mode="dark"] .text-gray-500,
+:root[data-theme-mode="dark"] .text-gray-400 {
+  color: #9ca3af;
+}
+
+:root[data-theme-mode="dark"] .border,
+:root[data-theme-mode="dark"] .border-t,
+:root[data-theme-mode="dark"] .border-b,
+:root[data-theme-mode="dark"] .border-l,
+:root[data-theme-mode="dark"] .border-r {
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+:root[data-theme-mode="dark"] input,
+:root[data-theme-mode="dark"] textarea,
+:root[data-theme-mode="dark"] select {
+  background-color: #0f172a;
+  color: #e5e7eb;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+:root[data-theme-mode="dark"] input::placeholder,
+:root[data-theme-mode="dark"] textarea::placeholder {
+  color: #9ca3af;
+}
+
+:root[data-theme-mode="dark"] [style*="background: white"],
+:root[data-theme-mode="dark"] [style*="background:white"],
+:root[data-theme-mode="dark"] [style*="background: #fff"],
+:root[data-theme-mode="dark"] [style*="background:#fff"] {
+  background: #111827 !important;
+}
+
+:root[data-theme-mode="dark"] [style*="background: #f9fafb"],
+:root[data-theme-mode="dark"] [style*="background:#f9fafb"],
+:root[data-theme-mode="dark"] [style*="background: #f8fafc"],
+:root[data-theme-mode="dark"] [style*="background:#f8fafc"] {
+  background: #0f172a !important;
+}
+
+/* Scoped dark fallback for admin sections that still use light utility/inline styles */
+:root[data-theme-mode="dark"] .admin-dashboard-theme {
+  color: #e5e7eb;
+}
+
+:root[data-theme-mode="dark"] .admin-dashboard-theme .bg-white {
+  background-color: #111827;
+}
+
+:root[data-theme-mode="dark"] .admin-dashboard-theme .bg-gray-50 {
+  background-color: #0f172a;
+}
+
+:root[data-theme-mode="dark"] .admin-dashboard-theme .text-gray-900 {
+  color: #f3f4f6;
+}
+
+:root[data-theme-mode="dark"] .admin-dashboard-theme .text-gray-800 {
+  color: #e5e7eb;
+}
+
+:root[data-theme-mode="dark"] .admin-dashboard-theme .text-gray-700 {
+  color: #d1d5db;
+}
+
+:root[data-theme-mode="dark"] .admin-dashboard-theme .text-gray-600,
+:root[data-theme-mode="dark"] .admin-dashboard-theme .text-gray-500,
+:root[data-theme-mode="dark"] .admin-dashboard-theme .text-gray-400 {
+  color: #9ca3af;
+}
+
+:root[data-theme-mode="dark"] .admin-dashboard-theme .border,
+:root[data-theme-mode="dark"] .admin-dashboard-theme .border-t,
+:root[data-theme-mode="dark"] .admin-dashboard-theme .border-b,
+:root[data-theme-mode="dark"] .admin-dashboard-theme .border-l,
+:root[data-theme-mode="dark"] .admin-dashboard-theme .border-r {
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background: white"],
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background:white"],
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background: #fff"],
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background:#fff"] {
+  background: #111827 !important;
+}
+
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background: #f9fafb"],
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background:#f9fafb"],
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background: #f8fafc"],
+:root[data-theme-mode="dark"]
+  .admin-dashboard-theme
+  [style*="background:#f8fafc"] {
+  background: #0f172a !important;
 }

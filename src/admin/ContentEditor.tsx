@@ -106,6 +106,12 @@ const FIELD_GROUPS = [
       },
       { key: "about.visionTitle", label: "Vision Card Title", type: "text" },
       { key: "about.visionText", label: "Vision Card Text", type: "textarea" },
+      {
+        key: "about.bannerUrl",
+        label: "Banner Image",
+        type: "image",
+        hint: "Recommended: 1600×400px, landscape",
+      },
     ],
   },
   {
@@ -131,6 +137,12 @@ const FIELD_GROUPS = [
         key: "collaborators.requestCta",
         label: "Join CTA Button Text",
         type: "text",
+      },
+      {
+        key: "collaborators.bannerUrl",
+        label: "Banner Image",
+        type: "image",
+        hint: "Recommended: 1600×400px, landscape",
       },
     ],
   },
@@ -163,6 +175,12 @@ const FIELD_GROUPS = [
         label: "Published Section Subtitle",
         type: "text",
       },
+      {
+        key: "publications.bannerUrl",
+        label: "Banner Image",
+        type: "image",
+        hint: "Recommended: 1600×400px, landscape",
+      },
     ],
   },
   {
@@ -172,6 +190,25 @@ const FIELD_GROUPS = [
       { key: "ideas.pageSubtitle", label: "Page Subtitle", type: "text" },
       { key: "ideas.postCta", label: "Post Button Text", type: "text" },
       { key: "ideas.emptyText", label: "Empty State Text", type: "text" },
+      {
+        key: "ideas.bannerUrl",
+        label: "Banner Image",
+        type: "image",
+        hint: "Recommended: 1600×400px, landscape",
+      },
+    ],
+  },
+  {
+    tab: "Gallery",
+    fields: [
+      { key: "gallery.pageTitle", label: "Page Title", type: "text" },
+      { key: "gallery.pageSubtitle", label: "Page Subtitle", type: "text" },
+      {
+        key: "gallery.bannerUrl",
+        label: "Banner Image",
+        type: "image",
+        hint: "Recommended: 1600×400px, landscape",
+      },
     ],
   },
   {
@@ -188,6 +225,12 @@ const FIELD_GROUPS = [
         key: "contact.successMessage",
         label: "Form Success Message",
         type: "text",
+      },
+      {
+        key: "contact.bannerUrl",
+        label: "Banner Image",
+        type: "image",
+        hint: "Recommended: 1600×400px, landscape",
       },
     ],
   },
@@ -327,18 +370,38 @@ const ContentEditor: React.FC = () => {
             </div>
 
             {field.type === "image" ? (
-              <CloudinaryUpload
-                currentUrl={values[field.key]}
-                aspectHint={(field as any).hint}
-                onUpload={(r: CloudinaryUploadResult) => {
-                  setValues((p) => ({ ...p, [field.key]: r.secure_url }));
-                  setDoc(
-                    doc(db, "siteContent", field.key),
-                    { value: r.secure_url },
-                    { merge: true },
-                  );
-                }}
-              />
+              <div>
+                <CloudinaryUpload
+                  currentUrl={values[field.key]}
+                  aspectHint={(field as any).hint}
+                  onUpload={(r: CloudinaryUploadResult) => {
+                    setValues((p) => ({ ...p, [field.key]: r.secure_url }));
+                    setDoc(
+                      doc(db, "siteContent", field.key),
+                      { value: r.secure_url },
+                      { merge: true },
+                    );
+                  }}
+                />
+                {/* Remove banner button */}
+                {values[field.key] && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValues((p) => ({ ...p, [field.key]: "" }));
+                      setDoc(
+                        doc(db, "siteContent", field.key),
+                        { value: "" },
+                        { merge: true },
+                      );
+                    }}
+                    className="mt-2 text-xs font-bold px-4 py-1.5 rounded-lg border-none cursor-pointer"
+                    style={{ background: "#fee2e2", color: "#991b1b" }}
+                  >
+                    ✕ Remove Banner
+                  </button>
+                )}
+              </div>
             ) : field.type === "textarea" ? (
               <textarea
                 rows={5}

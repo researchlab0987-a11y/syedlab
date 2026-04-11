@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
 import {
-  addDoc, deleteDoc, doc, collection, serverTimestamp, updateDoc, increment,
-} from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useComments } from '../firebase/hooks';
-import { useAuth } from '../context/AuthContext';
-import type { Comment } from '../types';
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  increment,
+  updateDoc,
+} from "firebase/firestore";
+import React, { useMemo, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase/config";
+import { useComments } from "../firebase/hooks";
+import type { Comment as AppComment } from "../types";
+import AppIcon from "./AppIcon";
 
 interface Props {
   ideaId: string;
@@ -14,92 +20,191 @@ interface Props {
 const CommentSection: React.FC<Props> = ({ ideaId }) => {
   const { comments, loading } = useComments(ideaId);
   const { appUser, role } = useAuth();
-  const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const canComment = role === 'collaborator' || role === 'admin';
+  const canComment = role === "collaborator" || role === "admin";
 
-  const submit = async () => {
-    if (!text.trim() || !appUser) return;
-    setSubmitting(true);
-    try {
-      await addDoc(collection(db, 'comments'), {
-        ideaId,
-        authorId: appUser.uid,
-        authorName: appUser.name,
-        authorPhoto: '',    // populated from collaborator profile if needed
-        content: text.trim(),
-        createdAt: new Date().toISOString(),
-      });
-      // Increment comment count on the idea
-      await updateDoc(doc(db, 'researchIdeas', ideaId), {
-        commentCount: increment(1),
-      });
-      setText('');
-    } finally {
-      setSubmitting(false);
+  const childrenByParent = useMemo(() => {
+    const grouped = new Map<string | null, AppComment[]>();
+    for (const comment of comments) {
+      const key = comment.parentId ?? null;
+      const bucket = grouped.get(key) ?? [];
+      bucket.push(comment);
+      grouped.set(key, bucket);
     }
-  };
 
-  const deleteComment = async (comment: Comment) => {
-    if (!window.confirm('Delete this comment?')) return;
-    await deleteDoc(doc(db, 'comments', comment.id));
-    await updateDoc(doc(db, 'researchIdeas', ideaId), {
-      commentCount: increment(-1),
+    grouped.forEach((bucket) => {
+      bucket.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    });
+
+    return grouped;
+  }, [comments]);
+
+  const getChildren = (parentId: string | null) =>
+    childrenByParent.get(parentId) ?? [];
+
+  const topLevel = getChildren(null);
+
+  const submit = async (content: string, parentId?: string) => {
+    if (!content.trim() || !appUser) return;
+    await addDoc(collection(db, "comments"), {
+      ideaId,
+      authorId: appUser.uid,
+      authorName: appUser.name,
+      authorPhoto: "",
+      content: content.trim(),
+      parentId: parentId ?? null,
+      createdAt: new Date().toISOString(),
+    });
+    await updateDoc(doc(db, "researchIdeas", ideaId), {
+      commentCount: increment(1),
     });
   };
 
-  const canDelete = (comment: Comment) =>
-    role === 'admin' || appUser?.uid === comment.authorId;
+  const collectTreeIds = (rootId: string) => {
+    const ids: string[] = [];
+    const stack = [rootId];
+
+    while (stack.length) {
+      const currentId = stack.pop();
+      if (!currentId) continue;
+      ids.push(currentId);
+
+      const children = getChildren(currentId);
+      for (const child of children) stack.push(child.id);
+    }
+
+    return ids;
+  };
+
+  const deleteComment = async (comment: AppComment) => {
+    if (!window.confirm("Delete this comment and all nested replies?")) return;
+
+    const idsToDelete = collectTreeIds(comment.id);
+    for (const id of idsToDelete) {
+      await deleteDoc(doc(db, "comments", id));
+    }
+
+    await updateDoc(doc(db, "researchIdeas", ideaId), {
+      commentCount: increment(-idsToDelete.length),
+    });
+  };
+
+  const canDelete = (c: AppComment) =>
+    role === "admin" || appUser?.uid === c.authorId;
 
   return (
     <div>
-      <h3 className="font-black text-xl mb-6" style={{ color: 'var(--color-primary)' }}>
-        Comments ({comments.length})
-      </h3>
+      <style>{`
+        @keyframes commentIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes replyIn   { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
+      `}</style>
 
-      {/* Comment Input */}
-      {canComment ? (
-        <div className="bg-white rounded-xl p-4 shadow-sm border mb-6" style={{ borderColor: '#e5e7eb' }}>
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Share your thoughts or ask a question..."
-            rows={3}
-            className="w-full text-sm resize-none outline-none text-gray-700"
-            style={{ border: 'none', fontFamily: 'var(--font-body)' }}
-          />
-          <div className="flex justify-end mt-2">
-            <button
-              onClick={submit}
-              disabled={submitting || !text.trim()}
-              className="text-sm font-bold px-4 py-2 rounded-lg text-white disabled:opacity-50"
-              style={{ background: 'var(--color-primary)', border: 'none', cursor: 'pointer' }}
-            >
-              {submitting ? 'Posting...' : 'Post Comment'}
-            </button>
-          </div>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <div
+          className="w-1 h-7 rounded-full"
+          style={{ background: "var(--color-secondary)" }}
+        />
+        <h3
+          className="font-black text-xl"
+          style={{
+            color: "var(--color-primary)",
+            fontFamily: "var(--font-heading)",
+          }}
+        >
+          Discussion
+        </h3>
+        <div
+          className="px-2.5 py-0.5 rounded-full text-xs font-black"
+          style={{ background: "var(--color-primary)", color: "white" }}
+        >
+          {comments.length}
         </div>
+      </div>
+
+      {/* Main input */}
+      {canComment ? (
+        <CommentInput
+          appUser={appUser}
+          onSubmit={async (content) => {
+            setSubmitting(true);
+            try {
+              await submit(content);
+            } finally {
+              setSubmitting(false);
+            }
+          }}
+          submitting={submitting}
+          placeholder="Share your thoughts about this research..."
+        />
       ) : (
-        <div className="text-sm text-gray-400 italic mb-6 p-4 bg-gray-50 rounded-lg">
-          Only collaborators can post comments.
+        <div
+          className="flex items-center gap-4 p-5 rounded-2xl mb-8"
+          style={{ background: "#f8fafc", border: "1px solid #e8eef4" }}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+            style={{ background: "#e8eef4" }}
+          >
+            <AppIcon name="lock" size={18} />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-700">
+              Comments are for collaborators
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Only approved collaborators and admins can comment.
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Comment List */}
+      {/* List */}
       {loading ? (
-        <div className="text-center py-8 text-gray-400">Loading comments...</div>
-      ) : comments.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">No comments yet. Be the first to comment!</div>
+        <div className="flex justify-center py-12">
+          <div
+            className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin"
+            style={{
+              borderColor: "var(--color-primary)",
+              borderTopColor: "transparent",
+            }}
+          />
+        </div>
+      ) : topLevel.length === 0 ? (
+        <div
+          className="text-center py-14 rounded-2xl"
+          style={{ background: "#f8fafc", border: "1px dashed #d1d5db" }}
+        >
+          <div className="mb-3 inline-flex items-center justify-center text-gray-400">
+            <AppIcon name="message" size={36} />
+          </div>
+          <p className="font-bold text-gray-500 text-sm">No comments yet</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {canComment
+              ? "Be the first to start the discussion!"
+              : "No discussion yet."}
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {comments.map((c) => (
-            <CommentItem
-              key={c.id}
-              comment={c}
-              canDelete={canDelete(c)}
-              onDelete={() => deleteComment(c)}
-            />
+          {topLevel.map((comment, idx) => (
+            <div
+              key={comment.id}
+              style={{ animation: `commentIn 0.3s ease ${idx * 0.05}s both` }}
+            >
+              <CommentThreadNode
+                comment={comment}
+                depth={0}
+                lineage={[comment.id]}
+                getChildren={getChildren}
+                canDelete={canDelete}
+                onDelete={deleteComment}
+                canComment={canComment}
+                appUser={appUser}
+                onReply={submit}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -107,59 +212,327 @@ const CommentSection: React.FC<Props> = ({ ideaId }) => {
   );
 };
 
-const CommentItem: React.FC<{
-  comment: Comment;
-  canDelete: boolean;
-  onDelete: () => void;
-}> = ({ comment, canDelete, onDelete }) => {
+// ── Reusable Comment Input ─────────────────────────────────────
+const CommentInput: React.FC<{
+  appUser: any;
+  onSubmit: (content: string) => Promise<void>;
+  submitting?: boolean;
+  placeholder?: string;
+  isReply?: boolean;
+  onCancel?: () => void;
+  autoFocus?: boolean;
+}> = ({
+  appUser,
+  onSubmit,
+  submitting = false,
+  placeholder = "Write a comment...",
+  isReply = false,
+  onCancel,
+  autoFocus = false,
+}) => {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const loading = submitting || busy;
+
+  const handle = async () => {
+    if (!text.trim() || loading) return;
+    setBusy(true);
+    try {
+      await onSubmit(text.trim());
+      setText("");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden mb-4"
+      style={{
+        border: `1px solid ${isReply ? "var(--color-secondary)33" : "#e8eef4"}`,
+        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+      }}
+    >
+      <div
+        className="px-4 py-3 flex items-center gap-3"
+        style={{ background: "#f8fafc", borderBottom: "1px solid #e8eef4" }}
+      >
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+          }}
+        >
+          {appUser?.name?.charAt(0).toUpperCase() ?? "?"}
+        </div>
+        <span className="text-sm font-semibold text-gray-600">
+          {appUser?.name ?? "You"} ·{" "}
+          <span className="text-gray-400 font-normal">
+            {isReply ? "Write a reply" : "Write a comment"}
+          </span>
+        </span>
+      </div>
+      <div className="bg-white px-4 py-3">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handle();
+          }}
+          placeholder={placeholder}
+          rows={isReply ? 2 : 3}
+          autoFocus={autoFocus}
+          className="w-full text-sm resize-none outline-none text-gray-700"
+          style={{
+            border: "none",
+            fontFamily: "var(--font-body)",
+            lineHeight: 1.7,
+          }}
+        />
+      </div>
+      <div
+        className="px-4 py-3 flex items-center justify-between"
+        style={{ background: "#f8fafc", borderTop: "1px solid #e8eef4" }}
+      >
+        <span className="text-xs text-gray-400">Ctrl + Enter to post</span>
+        <div className="flex gap-2">
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="text-xs font-bold px-4 py-1.5 rounded-lg border-none cursor-pointer"
+              style={{ background: "#f1f5f9", color: "#64748b" }}
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={handle}
+            disabled={loading || !text.trim()}
+            className="text-xs font-bold px-4 py-1.5 rounded-xl text-white disabled:opacity-50 transition-all"
+            style={{
+              background: isReply
+                ? "var(--color-secondary)"
+                : "var(--color-primary)",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            {loading ? (
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin"
+                  style={{
+                    borderColor: "white",
+                    borderTopColor: "transparent",
+                  }}
+                />
+                Posting...
+              </span>
+            ) : isReply ? (
+              "↩ Reply"
+            ) : (
+              "Post"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Recursive Thread Node ──────────────────────────────────────
+const CommentThreadNode: React.FC<{
+  comment: AppComment;
+  depth: number;
+  lineage: string[];
+  getChildren: (parentId: string | null) => AppComment[];
+  canDelete: (comment: AppComment) => boolean;
+  onDelete: (comment: AppComment) => Promise<void>;
+  canComment: boolean;
+  appUser: any;
+  onReply: (content: string, parentId?: string) => Promise<void>;
+}> = ({
+  comment,
+  depth,
+  lineage,
+  getChildren,
+  canDelete,
+  onDelete,
+  canComment,
+  appUser,
+  onReply,
+}) => {
+  const [hovered, setHovered] = useState(false);
+  const [showReply, setShowReply] = useState(false);
+  const [showReplies, setShowReplies] = useState(true);
+
+  const allChildren = getChildren(comment.id);
+  const children = allChildren.filter((child) => !lineage.includes(child.id));
+
+  const leftPadding = Math.min(depth, 4) * 20;
+
   const initials = comment.authorName
-    .split(' ')
+    .split(" ")
     .map((w) => w[0])
     .slice(0, 2)
-    .join('')
+    .join("")
     .toUpperCase();
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border" style={{ borderColor: '#f0f0f0' }}>
+    <div
+      className="transition-all"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        paddingLeft: leftPadding,
+      }}
+    >
       <div className="flex items-start gap-3">
         {/* Avatar */}
-        {comment.authorPhoto ? (
-          <img
-            src={comment.authorPhoto}
-            alt={comment.authorName}
-            className="rounded-full object-cover flex-shrink-0"
-            style={{ width: 36, height: 36 }}
-          />
-        ) : (
-          <div
-            className="rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0"
-            style={{ width: 36, height: 36, background: 'var(--color-primary)' }}
-          >
-            {initials}
-          </div>
-        )}
+        <div
+          className="rounded-full flex items-center justify-center text-white font-black flex-shrink-0"
+          style={{
+            width: depth === 0 ? 42 : 36,
+            height: depth === 0 ? 42 : 36,
+            background:
+              "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+            fontSize: depth === 0 ? 14 : 12,
+            boxShadow: "0 2px 8px rgba(30,58,95,0.2)",
+          }}
+        >
+          {initials}
+        </div>
 
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <div>
-              <span className="text-sm font-bold text-gray-800">{comment.authorName}</span>
-              <span className="text-xs text-gray-400 ml-2">
-                {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                  year: 'numeric', month: 'short', day: 'numeric',
-                  hour: '2-digit', minute: '2-digit',
-                })}
+        <div className="flex-1 min-w-0">
+          {/* Bubble */}
+          <div
+            className="inline-block px-4 py-3 rounded-2xl rounded-tl-sm mb-1"
+            style={{
+              background: hovered ? "#eaf1fb" : "#f0f4f8",
+              maxWidth: "100%",
+              width: "100%",
+              border: "1px solid #e8eef4",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-black text-gray-800 text-sm">
+                {comment.authorName}
               </span>
+              {depth > 0 && (
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                  style={{
+                    background: "#eff6ff",
+                    color: "#1d4ed8",
+                    fontSize: 10,
+                  }}
+                >
+                  Reply
+                </span>
+              )}
             </div>
-            {canDelete && (
+            <p
+              className="text-sm text-gray-700 leading-relaxed"
+              style={{ lineHeight: 1.65 }}
+            >
+              {comment.content}
+            </p>
+          </div>
+
+          {/* Action row */}
+          <div className="flex items-center gap-4 px-1 flex-wrap">
+            <span className="text-xs text-gray-400">
+              {new Date(comment.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            {canComment && (
               <button
-                onClick={onDelete}
-                className="text-xs text-red-400 hover:text-red-600 bg-transparent border-none cursor-pointer p-0 font-semibold"
+                onClick={() => setShowReply((v) => !v)}
+                className="text-xs font-black border-none bg-transparent cursor-pointer"
+                style={{
+                  color: showReply ? "var(--color-secondary)" : "#64748b",
+                }}
               >
-                Delete
+                ↩ Reply
+              </button>
+            )}
+            {children.length > 0 && (
+              <button
+                onClick={() => setShowReplies((v) => !v)}
+                className="text-xs font-bold border-none bg-transparent cursor-pointer"
+                style={{ color: "var(--color-primary)" }}
+              >
+                {showReplies
+                  ? `▲ Hide ${children.length} ${children.length === 1 ? "reply" : "replies"}`
+                  : `▼ View ${children.length} ${children.length === 1 ? "reply" : "replies"}`}
+              </button>
+            )}
+            {canDelete(comment) && (
+              <button
+                onClick={() => onDelete(comment)}
+                className="text-xs font-bold px-2 py-0.5 rounded-lg border-none cursor-pointer ml-auto"
+                style={{ background: "#fee2e2", color: "#991b1b" }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#fecaca")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#fee2e2")
+                }
+              >
+                🗑 Delete
               </button>
             )}
           </div>
-          <p className="text-sm text-gray-700 leading-relaxed">{comment.content}</p>
+
+          {/* Reply input */}
+          {showReply && (
+            <div className="mt-3" style={{ animation: "replyIn 0.2s ease" }}>
+              <CommentInput
+                appUser={appUser}
+                onSubmit={async (content) => {
+                  await onReply(content, comment.id);
+                  setShowReply(false);
+                  setShowReplies(true);
+                }}
+                isReply
+                placeholder={`Reply to ${comment.authorName}...`}
+                onCancel={() => setShowReply(false)}
+                autoFocus
+              />
+            </div>
+          )}
+
+          {/* Replies */}
+          {showReplies && children.length > 0 && (
+            <div
+              className="mt-3 flex flex-col gap-3 pl-3"
+              style={{ borderLeft: "2px solid #dbe7f3" }}
+            >
+              {children.map((reply, idx) => (
+                <div
+                  key={reply.id}
+                  style={{ animation: `replyIn 0.2s ease ${idx * 0.04}s both` }}
+                >
+                  <CommentThreadNode
+                    comment={reply}
+                    depth={depth + 1}
+                    lineage={[...lineage, reply.id]}
+                    getChildren={getChildren}
+                    canDelete={canDelete}
+                    onDelete={onDelete}
+                    canComment={canComment}
+                    appUser={appUser}
+                    onReply={onReply}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

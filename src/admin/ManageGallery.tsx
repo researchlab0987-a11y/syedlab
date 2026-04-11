@@ -6,6 +6,7 @@
   updateDoc,
 } from "firebase/firestore";
 import React, { useState } from "react";
+import AppIcon from "../components/AppIcon";
 import CloudinaryUpload from "../components/CloudinaryUpload";
 import { db } from "../firebase/config";
 import { useGallery } from "../firebase/hooks";
@@ -124,7 +125,9 @@ const ManageGallery: React.FC = () => {
           className="text-center py-20 rounded-2xl border-2 border-dashed"
           style={{ borderColor: "#e5e7eb" }}
         >
-          <div className="text-5xl mb-3">🖼️</div>
+          <div className="mb-3 inline-flex text-gray-400">
+            <AppIcon name="gallery" size={44} />
+          </div>
           <p className="text-gray-500 font-semibold">No images yet.</p>
           <p className="text-gray-400 text-sm mt-1">
             Click "+ Add Image" to get started.

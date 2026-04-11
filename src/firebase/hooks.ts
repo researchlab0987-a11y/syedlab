@@ -9,8 +9,8 @@ import {
 import { useEffect, useState } from "react";
 import type {
   Announcement,
+  Comment as AppComment,
   CollaboratorProfile,
-  Comment,
   Publication,
   ResearchIdea,
   SiteContent,
@@ -149,7 +149,7 @@ export function useResearchIdeas() {
 
 // ── Comments for an idea ──────────────────────────────────────
 export function useComments(ideaId: string) {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<AppComment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -158,7 +158,7 @@ export function useComments(ideaId: string) {
       query(collection(db, "comments"), where("ideaId", "==", ideaId)),
       (snap) => {
         const all = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }) as Comment)
+          .map((d) => ({ id: d.id, ...d.data() }) as AppComment)
           .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
         setComments(all);
         setLoading(false);
