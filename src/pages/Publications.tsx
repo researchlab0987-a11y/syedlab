@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import PublicationCard from "../components/PublicationCard";
 import { usePublications, useSiteContent } from "../firebase/hooks";
-import type { Publication } from "../types";
+import type { Publication, PublicationAuthorEntry } from "../types";
 
 function groupByYear(list: Publication[]): Record<number, Publication[]> {
   return list.reduce(
@@ -21,6 +22,19 @@ const Publications: React.FC = () => {
   const [tab, setTab] = useState<"all" | "ongoing" | "published">("all");
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedTag, setSelectedTag] = useState<string>("");
+  const [selectedPublication, setSelectedPublication] =
+    useState<Publication | null>(null);
+
+  const toAuthorEntries = (
+    publication: Publication,
+  ): PublicationAuthorEntry[] => {
+    if (publication.authorEntries?.length) return publication.authorEntries;
+    return (publication.authors || "")
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean)
+      .map((name) => ({ type: "external", name }));
+  };
 
   const allYears = useMemo(() => {
     const set = new Set([...ongoing, ...published].map((p) => p.year));
@@ -298,7 +312,11 @@ const Publications: React.FC = () => {
             />
             <div className="flex flex-col gap-3">
               {filteredOngoing.map((p) => (
-                <PublicationCard key={p.id} publication={p} />
+                <PublicationCard
+                  key={p.id}
+                  publication={p}
+                  onOpenDetails={() => setSelectedPublication(p)}
+                />
               ))}
             </div>
           </div>
@@ -321,6 +339,7 @@ const Publications: React.FC = () => {
                   key={year}
                   year={year}
                   publications={groupedPublished[year]}
+                  onOpenDetails={setSelectedPublication}
                 />
               ))}
             </div>
@@ -342,6 +361,105 @@ const Publications: React.FC = () => {
           </div>
         )}
       </div>
+
+      {selectedPublication && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 p-4"
+          onClick={() => setSelectedPublication(null)}
+        >
+          <div
+            className="mt-8 w-full max-w-2xl rounded-3xl border bg-white p-6 shadow-2xl"
+            style={{ borderColor: "#dbe5dd" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gray-400 font-semibold">
+                  Publication details
+                </p>
+                <h3 className="mt-1 text-2xl font-black text-gray-900 leading-snug">
+                  {selectedPublication.title}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {selectedPublication.journal} · {selectedPublication.year}
+                </p>
+              </div>
+              <button
+                className="h-10 w-10 rounded-full border border-slate-200 text-xl font-black text-slate-500"
+                onClick={() => setSelectedPublication(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <p className="text-xs uppercase tracking-[0.16em] text-gray-400 font-semibold mb-2">
+                Authors
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {toAuthorEntries(selectedPublication).map((author, idx) => (
+                  <div key={`${author.name}-${idx}`}>
+                    {author.type === "linked" && author.uid ? (
+                      <Link
+                        to={`/collaborators/${author.uid}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 no-underline text-sm text-slate-700 hover:border-[var(--color-primary)]"
+                      >
+                        {author.photo ? (
+                          <img
+                            src={author.photo}
+                            alt={author.name}
+                            className="h-7 w-7 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-600">
+                            {author.name.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                        {author.name}
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-700">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-black text-slate-600">
+                          {author.name.charAt(0).toUpperCase()}
+                        </span>
+                        {author.name}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-[0.16em] text-gray-400 font-semibold mb-2">
+                Abstract
+              </p>
+              <p
+                className="text-sm leading-relaxed text-slate-700"
+                style={{ whiteSpace: "pre-line" }}
+              >
+                {selectedPublication.abstract || "No abstract available."}
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <a
+                href={
+                  selectedPublication.url ||
+                  (selectedPublication.doi
+                    ? `https://doi.org/${selectedPublication.doi}`
+                    : "#")
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-bold text-white no-underline"
+              >
+                View Full Paper
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -383,7 +501,8 @@ const SectionHeader: React.FC<{
 const YearGroup: React.FC<{
   year: number;
   publications: Publication[];
-}> = ({ year, publications }) => {
+  onOpenDetails: (publication: Publication) => void;
+}> = ({ year, publications, onOpenDetails }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -409,7 +528,11 @@ const YearGroup: React.FC<{
       {!collapsed && (
         <div className="flex flex-col gap-3">
           {publications.map((p) => (
-            <PublicationCard key={p.id} publication={p} />
+            <PublicationCard
+              key={p.id}
+              publication={p}
+              onOpenDetails={() => onOpenDetails(p)}
+            />
           ))}
         </div>
       )}

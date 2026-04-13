@@ -199,6 +199,123 @@ const PRESETS: { name: string; settings: ThemeSettings }[] = [
     },
   },
   {
+    name: "Cedar Slate Editorial",
+    settings: {
+      primaryColor: "#2d3142",
+      secondaryColor: "#b56576",
+      accentColor: "#e09f3e",
+      backgroundColor: "#f4f1de",
+      navbarColor: "#1f2233",
+      footerColor: "#11131f",
+      fontFamily: "'Source Sans 3', sans-serif",
+      headingFont: "'Playfair Display', serif",
+    },
+  },
+  {
+    name: "Azure Bloom",
+    settings: {
+      primaryColor: "#041f3d",
+      secondaryColor: "#0064a5",
+      accentColor: "#e14a92",
+      backgroundColor: "#f7f6fb",
+      navbarColor: "#052c6d",
+      footerColor: "#3b82c4",
+      fontFamily: "'Poppins', sans-serif",
+      headingFont: "'Nunito', sans-serif",
+    },
+  },
+  {
+    name: "Seafoam Current",
+    settings: {
+      primaryColor: "#2f7f7f",
+      secondaryColor: "#3ea292",
+      accentColor: "#8ed1b2",
+      backgroundColor: "#eaf6f2",
+      navbarColor: "#255f57",
+      footerColor: "#1b4440",
+      fontFamily: "'Lato', sans-serif",
+      headingFont: "'Poppins', sans-serif",
+    },
+  },
+  {
+    name: "Mint Pebble",
+    settings: {
+      primaryColor: "#4b9a8f",
+      secondaryColor: "#67b9b5",
+      accentColor: "#b1d9c2",
+      backgroundColor: "#f1f7f3",
+      navbarColor: "#2f6f66",
+      footerColor: "#254f4a",
+      fontFamily: "'Source Sans 3', sans-serif",
+      headingFont: "'Merriweather', serif",
+    },
+  },
+  {
+    name: "Lemon Lagoon Pop",
+    settings: {
+      primaryColor: "#0f7c96",
+      secondaryColor: "#35b7d8",
+      accentColor: "#f1cf0a",
+      backgroundColor: "#f4fbfd",
+      navbarColor: "#09586d",
+      footerColor: "#083e4f",
+      fontFamily: "'Nunito', sans-serif",
+      headingFont: "'Poppins', sans-serif",
+    },
+  },
+  {
+    name: "Coral Notebook",
+    settings: {
+      primaryColor: "#e57967",
+      secondaryColor: "#f39f79",
+      accentColor: "#6db7c6",
+      backgroundColor: "#fff4ef",
+      navbarColor: "#b65d4f",
+      footerColor: "#7e3f37",
+      fontFamily: "'Lato', sans-serif",
+      headingFont: "'Playfair Display', serif",
+    },
+  },
+  {
+    name: "Powder Candy",
+    settings: {
+      primaryColor: "#8bb7cc",
+      secondaryColor: "#f2a8b5",
+      accentColor: "#f0d48d",
+      backgroundColor: "#f8f6fb",
+      navbarColor: "#5e8297",
+      footerColor: "#445d6c",
+      fontFamily: "'Nunito', sans-serif",
+      headingFont: "'Nunito', sans-serif",
+    },
+  },
+  {
+    name: "Pastel Orchard",
+    settings: {
+      primaryColor: "#9fcf93",
+      secondaryColor: "#f2b37a",
+      accentColor: "#f28f8f",
+      backgroundColor: "#fffaf4",
+      navbarColor: "#6e9768",
+      footerColor: "#4e6f4b",
+      fontFamily: "'Poppins', sans-serif",
+      headingFont: "'Merriweather', serif",
+    },
+  },
+  {
+    name: "Ink Aqua Pastel",
+    settings: {
+      primaryColor: "#0d2a66",
+      secondaryColor: "#147fa1",
+      accentColor: "#6ac6df",
+      backgroundColor: "#edf7fb",
+      navbarColor: "#0a204d",
+      footerColor: "#071633",
+      fontFamily: "'Inter', sans-serif",
+      headingFont: "'Poppins', sans-serif",
+    },
+  },
+  {
     name: "Navy Blue (Default)",
     settings: {
       primaryColor: "#1e3a5f",
@@ -265,14 +382,70 @@ const PRESETS: { name: string; settings: ThemeSettings }[] = [
   },
 ];
 
-const COLOR_FIELDS: { key: keyof ThemeSettings; label: string }[] = [
-  { key: "primaryColor", label: "Primary Color" },
-  { key: "secondaryColor", label: "Secondary / Link Color" },
-  { key: "accentColor", label: "Accent Color" },
-  { key: "backgroundColor", label: "Page Background" },
-  { key: "navbarColor", label: "Navbar Color" },
-  { key: "footerColor", label: "Footer Color" },
+const hexToRgb = (hex: string) => {
+  const clean = hex.replace("#", "").trim();
+  const normalized =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return null;
+  }
+
+  const value = Number.parseInt(normalized, 16);
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+};
+
+const rgbToHex = (r: number, g: number, b: number) =>
+  `#${[r, g, b]
+    .map((v) =>
+      Math.round(Math.max(0, Math.min(255, v)))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+
+const blendHex = (base: string, mixWith: string, weight = 0.5) => {
+  const b = hexToRgb(base);
+  const m = hexToRgb(mixWith);
+  if (!b || !m) return base;
+
+  const w = Math.max(0, Math.min(1, weight));
+  return rgbToHex(
+    b.r * (1 - w) + m.r * w,
+    b.g * (1 - w) + m.g * w,
+    b.b * (1 - w) + m.b * w,
+  );
+};
+
+const darkenHex = (hex: string, amount = 0.2) =>
+  blendHex(hex, "#000000", amount);
+
+const presetStrips = (settings: ThemeSettings) => [
+  settings.backgroundColor,
+  settings.primaryColor,
+  settings.secondaryColor,
+  settings.accentColor,
+  settings.navbarColor,
 ];
+
+const isThemeMatch = (a: ThemeSettings, b: ThemeSettings) =>
+  a.primaryColor === b.primaryColor &&
+  a.secondaryColor === b.secondaryColor &&
+  a.accentColor === b.accentColor &&
+  a.backgroundColor === b.backgroundColor &&
+  a.navbarColor === b.navbarColor &&
+  a.footerColor === b.footerColor &&
+  a.fontFamily === b.fontFamily &&
+  a.headingFont === b.headingFont;
 
 const ThemeControl: React.FC = () => {
   const currentTheme = useTheme();
@@ -283,6 +456,60 @@ const ThemeControl: React.FC = () => {
   React.useEffect(() => {
     setTheme(currentTheme);
   }, [currentTheme]);
+
+  const corePalette = [
+    { key: "primaryColor", label: "Primary", value: theme.primaryColor },
+    {
+      key: "secondaryColor",
+      label: "Secondary",
+      value: theme.secondaryColor,
+    },
+    { key: "accentColor", label: "Accent", value: theme.accentColor },
+    { key: "navbarColor", label: "Navbar", value: theme.navbarColor },
+    { key: "footerColor", label: "Footer", value: theme.footerColor },
+  ];
+
+  const navBlend = blendHex(theme.navbarColor, theme.secondaryColor, 0.38);
+  const accentBlend = blendHex(theme.accentColor, theme.secondaryColor, 0.52);
+  const footerBlend = blendHex(theme.footerColor, theme.accentColor, 0.48);
+
+  const supportingPalette = [
+    {
+      key: "backgroundColor",
+      label: "Background",
+      swatch: theme.backgroundColor,
+      hex: theme.backgroundColor,
+      editableKey: "backgroundColor" as const,
+    },
+    {
+      key: "navBlend",
+      label: "Nav Blend",
+      swatch: `linear-gradient(140deg, ${theme.navbarColor} 0%, ${navBlend} 100%)`,
+      hex: `${theme.navbarColor} / ${navBlend}`,
+      editableKey: null,
+    },
+    {
+      key: "primaryDeep",
+      label: "Primary Deep",
+      swatch: `linear-gradient(140deg, ${darkenHex(theme.primaryColor, 0.35)} 0%, ${blendHex(theme.primaryColor, theme.secondaryColor, 0.45)} 100%)`,
+      hex: `${darkenHex(theme.primaryColor, 0.35)} / ${blendHex(theme.primaryColor, theme.secondaryColor, 0.45)}`,
+      editableKey: null,
+    },
+    {
+      key: "accentBlend",
+      label: "Accent Blend",
+      swatch: `linear-gradient(140deg, ${accentBlend} 0%, ${theme.accentColor} 100%)`,
+      hex: `${accentBlend} / ${theme.accentColor}`,
+      editableKey: null,
+    },
+    {
+      key: "footerBlend",
+      label: "Footer Blend",
+      swatch: `linear-gradient(140deg, ${theme.footerColor} 0%, ${footerBlend} 100%)`,
+      hex: `${theme.footerColor} / ${footerBlend}`,
+      editableKey: null,
+    },
+  ];
 
   const applyTheme = async (t: ThemeSettings) => {
     setSaving(true);
@@ -330,45 +557,92 @@ const ThemeControl: React.FC = () => {
           style={{ borderColor: "#e5e7eb" }}
         >
           <h3 className="font-bold text-base mb-5 text-gray-800">
-            Custom Colors
+            Palette Structure
           </h3>
-          <div className="flex flex-col gap-4">
-            {COLOR_FIELDS.map((f) => (
-              <div key={f.key} className="flex items-center gap-4">
-                <input
-                  type="color"
-                  value={theme[f.key] as string}
-                  onChange={(e) =>
-                    setTheme((p) => ({ ...p, [f.key]: e.target.value }))
-                  }
-                  className="rounded-lg border cursor-pointer flex-shrink-0"
-                  style={{
-                    width: 48,
-                    height: 40,
-                    borderColor: "#d1d5db",
-                    padding: 2,
-                  }}
-                />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-700">
-                    {f.label}
+          <p className="text-xs text-gray-500 mb-4">
+            Live palette built from the current draft colors. Click swatches to
+            edit.
+          </p>
+
+          <div className="mx-auto w-full max-w-3xl">
+            <div className="flex flex-wrap sm:flex-nowrap justify-center gap-4 sm:gap-3">
+              {corePalette.map((item) => (
+                <div
+                  key={item.key}
+                  className="w-[58px] flex flex-col items-center"
+                >
+                  <label
+                    className="relative block w-[58px] h-[132px] rounded-[30px] overflow-hidden cursor-pointer"
+                    title={`${item.label}: ${item.value}`}
+                  >
+                    <span
+                      className="absolute inset-0"
+                      style={{ background: item.value }}
+                    />
+                    <input
+                      type="color"
+                      value={item.value}
+                      onChange={(e) =>
+                        setTheme((p) => ({ ...p, [item.key]: e.target.value }))
+                      }
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      aria-label={`${item.label} color`}
+                    />
+                  </label>
+                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-600 text-center leading-none">
+                    {item.label}
                   </p>
-                  <p className="text-xs text-gray-400 font-mono">
-                    {theme[f.key] as string}
+                  <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.04em] text-gray-500 text-center leading-none">
+                    {item.value}
                   </p>
                 </div>
-                {/* Swatch preview */}
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap sm:flex-nowrap justify-center gap-5 sm:gap-4">
+              {supportingPalette.map((item) => (
                 <div
-                  className="rounded-lg border"
-                  style={{
-                    width: 40,
-                    height: 40,
-                    background: theme[f.key] as string,
-                    borderColor: "#e5e7eb",
-                  }}
-                />
-              </div>
-            ))}
+                  key={item.key}
+                  className="w-[70px] flex flex-col items-center"
+                >
+                  {item.editableKey ? (
+                    <label
+                      className="relative block w-[62px] h-[62px] rounded-full overflow-hidden cursor-pointer"
+                      title={`${item.label}: ${item.hex}`}
+                    >
+                      <span
+                        className="absolute inset-0"
+                        style={{ background: item.swatch }}
+                      />
+                      <input
+                        type="color"
+                        value={theme[item.editableKey] as string}
+                        onChange={(e) =>
+                          setTheme((p) => ({
+                            ...p,
+                            [item.editableKey]: e.target.value,
+                          }))
+                        }
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        aria-label={`${item.label} color`}
+                      />
+                    </label>
+                  ) : (
+                    <div
+                      className="w-[62px] h-[62px] rounded-full"
+                      style={{ background: item.swatch }}
+                      title={`${item.label}: ${item.hex}`}
+                    />
+                  )}
+                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-600 text-center leading-none">
+                    {item.label}
+                  </p>
+                  <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.04em] text-gray-500 text-center leading-none">
+                    {item.hex}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Font pickers */}
@@ -410,58 +684,80 @@ const ThemeControl: React.FC = () => {
             Preset Palettes
           </h3>
           <div className="flex flex-col gap-3">
-            {PRESETS.map((p) => (
-              <div
-                key={p.name}
-                onClick={() => {
-                  setTheme(p.settings);
-                  applyTheme(p.settings);
-                }}
-                className="flex items-center gap-4 p-3 rounded-xl border cursor-pointer transition-colors"
-                style={{ borderColor: "#e5e7eb" }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#f8fafc")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "white")
-                }
-              >
-                {/* Swatches */}
-                <div className="flex gap-1.5">
-                  {[
-                    p.settings.primaryColor,
-                    p.settings.secondaryColor,
-                    p.settings.accentColor,
-                  ].map((c) => (
-                    <div
-                      key={c}
-                      className="rounded-full border"
-                      style={{
-                        width: 22,
-                        height: 22,
-                        background: c,
-                        borderColor: "#e5e7eb",
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-800">{p.name}</p>
-                  <p
-                    className="text-xs text-gray-400"
-                    style={{ fontFamily: p.settings.fontFamily }}
+            {PRESETS.map((p) =>
+              (() => {
+                const isCurrent = isThemeMatch(theme, p.settings);
+                const stripColors = presetStrips(p.settings);
+
+                return (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => {
+                      setTheme(p.settings);
+                      applyTheme(p.settings);
+                    }}
+                    className="w-full text-left rounded-xl border px-4 py-3 transition-colors"
+                    style={{
+                      borderColor: isCurrent
+                        ? "var(--color-secondary)"
+                        : "#e5e7eb",
+                      background: isCurrent ? "#f8fafc" : "white",
+                    }}
                   >
-                    {p.settings.fontFamily.replace(/'/g, "").split(",")[0]}
-                  </p>
-                </div>
-                <span
-                  className="text-xs font-semibold"
-                  style={{ color: "var(--color-secondary)" }}
-                >
-                  Apply →
-                </span>
-              </div>
-            ))}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-[92px] h-[56px] rounded-xl overflow-hidden grid grid-cols-5 border flex-shrink-0"
+                        style={{ borderColor: "#d1d5db" }}
+                      >
+                        {stripColors.map((c, index) => (
+                          <div
+                            key={`${p.name}-${index}`}
+                            style={{ background: c }}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-gray-800 truncate">
+                          {p.name}
+                        </p>
+                        <p
+                          className="text-xs text-gray-400"
+                          style={{ fontFamily: p.settings.fontFamily }}
+                        >
+                          {
+                            p.settings.fontFamily
+                              .replace(/'/g, "")
+                              .split(",")[0]
+                          }
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                        {isCurrent && (
+                          <span
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            style={{
+                              color: "var(--color-secondary)",
+                              background: "rgba(37,99,235,0.08)",
+                            }}
+                          >
+                            Current
+                          </span>
+                        )}
+                        <span
+                          className="text-sm font-semibold"
+                          style={{ color: "var(--color-secondary)" }}
+                        >
+                          Apply →
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })(),
+            )}
           </div>
         </div>
       </div>

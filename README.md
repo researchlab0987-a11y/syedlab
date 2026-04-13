@@ -26,7 +26,7 @@ The application is built as a single-page React experience with a polished landi
 | Routing   | React Router v6                    |
 | Backend   | Firebase Authentication, Firestore |
 | Media     | Cloudinary                         |
-| Messaging | EmailJS                            |
+| Messaging | EmailJS + Firebase Functions SMTP  |
 
 ## Public Routes
 
@@ -41,6 +41,7 @@ The application is built as a single-page React experience with a polished landi
 | `/gallery`             | Lab gallery                                  |
 | `/contact`             | Contact form                                 |
 | `/login`               | Authentication entry point                   |
+| `/chat`                | Collaborator private encrypted chat          |
 | `/admin/*`             | Admin dashboard                              |
 | `/collaborator-portal` | Collaborator portal                          |
 
@@ -148,6 +149,21 @@ VITE_FIREBASE_APP_ID=
 VITE_FIREBASE_MEASUREMENT_ID=
 VITE_CLOUDINARY_CLOUD_NAME=
 VITE_CLOUDINARY_UPLOAD_PRESET=
+VITE_EMAILJS_SERVICE_ID=
+VITE_EMAILJS_TEMPLATE_ID=
+VITE_EMAILJS_PUBLIC_KEY=
+VITE_SITE_URL=http://localhost:5173
+```
+
+For email notification delivery from Firebase Functions, configure a server-side env file using [functions/.env.example](functions/.env.example):
+
+```env
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+FROM_EMAIL=
+APP_BASE_URL=
 ```
 
 ## Available Scripts
@@ -167,6 +183,22 @@ npm run build
 ```
 
 Before deploying, make sure your hosting provider is configured to serve `dist/` and route unknown paths back to `index.html`.
+
+### Firebase Rules and Functions
+
+Deploy Firestore security rules:
+
+```bash
+firebase deploy --project relab-f93b3 --only firestore:rules
+```
+
+Deploy Cloud Functions:
+
+```bash
+firebase deploy --project relab-f93b3 --only functions
+```
+
+Important: Firebase Functions deployment in this project requires the Blaze (pay-as-you-go) plan because Cloud Build and Artifact Registry APIs are required by the Functions v2 pipeline.
 
 ## Security & Privacy
 

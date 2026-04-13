@@ -40,6 +40,7 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { to: "/", label: "Home", icon: "home" as AppIconName },
     { to: "/about", label: "About", icon: "about" as AppIconName },
+    { to: "/lab-head", label: "Lab Head", icon: "admin" as AppIconName },
     {
       to: "/collaborators",
       label: "Collaborators",
@@ -55,6 +56,9 @@ const Navbar: React.FC = () => {
       label: "Research Ideas",
       icon: "ideas" as AppIconName,
     },
+    ...(role === "collaborator"
+      ? [{ to: "/chat", label: "Chat", icon: "message" as AppIconName }]
+      : []),
     { to: "/gallery", label: "Gallery", icon: "gallery" as AppIconName },
     { to: "/contact", label: "Contact", icon: "contact" as AppIconName },
   ];

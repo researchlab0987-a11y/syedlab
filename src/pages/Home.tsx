@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
+import { useThemeContext } from "../context/ThemeContext";
 import {
   useAnnouncements,
   useCollaborators,
@@ -30,14 +31,32 @@ interface LabHeadData {
 // ── Main Component ─────────────────────────────────────────────
 const Home: React.FC = () => {
   const { content, loading } = useSiteContent();
+  const { theme } = useThemeContext();
   const announcements = useAnnouncements();
   const { collaborators } = useCollaborators();
   const { ongoing, published } = usePublications();
   const { ideas } = useResearchIdeas();
   const { gallery } = useGallery(); // ── ADDED: gallery data
   const [bannerImgErr, setBannerImgErr] = useState(false);
-  const [showLabHeadModal, setShowLabHeadModal] = useState(false);
   const [visible, setVisible] = useState(false);
+
+  const isDarkTheme = React.useMemo(() => {
+    const clean = (theme.backgroundColor ?? "").replace("#", "").trim();
+    if (clean.length !== 6) return false;
+    const r = Number.parseInt(clean.slice(0, 2), 16);
+    const g = Number.parseInt(clean.slice(2, 4), 16);
+    const b = Number.parseInt(clean.slice(4, 6), 16);
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance < 140;
+  }, [theme.backgroundColor]);
+
+  const sectionTextPrimary = isDarkTheme ? "#e5e7eb" : "#1f2937";
+  const sectionTextSecondary = isDarkTheme ? "#cbd5e1" : "#374151";
+  const sectionTextMuted = isDarkTheme ? "#94a3b8" : "#9ca3af";
+  const sectionCardBg = isDarkTheme ? "rgba(15,23,42,0.7)" : "#ffffff";
+  const sectionCardBorder = isDarkTheme ? "rgba(148,163,184,0.22)" : "#e5e7eb";
+  const stripBg = isDarkTheme ? "#0b1220" : "#ffffff";
+  const stripBorder = isDarkTheme ? "rgba(148,163,184,0.2)" : "#e5e7eb";
 
   useEffect(() => {
     if (!loading) setTimeout(() => setVisible(true), 80);
@@ -368,9 +387,9 @@ const Home: React.FC = () => {
                       ))}
                   </div>
 
-                  <button
-                    onClick={() => setShowLabHeadModal(true)}
-                    className="w-full text-sm font-black py-2.5 rounded-xl border-none cursor-pointer"
+                  <Link
+                    to="/lab-head"
+                    className="w-full inline-flex items-center justify-center no-underline text-sm font-black py-2.5 rounded-xl"
                     style={{
                       background:
                         "linear-gradient(135deg, var(--color-accent), #f97316)",
@@ -379,7 +398,7 @@ const Home: React.FC = () => {
                     }}
                   >
                     Full Profile →
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -446,7 +465,7 @@ const Home: React.FC = () => {
             <h2
               className="font-black text-2xl"
               style={{
-                color: "var(--color-primary)",
+                color: sectionTextPrimary,
                 fontFamily: "var(--font-heading)",
               }}
             >
@@ -459,8 +478,12 @@ const Home: React.FC = () => {
           />
 
           <p
-            className="text-gray-600 leading-relaxed text-base mb-8"
-            style={{ whiteSpace: "pre-line", lineHeight: 1.85 }}
+            className="leading-relaxed text-base mb-8"
+            style={{
+              whiteSpace: "pre-line",
+              lineHeight: 1.85,
+              color: sectionTextSecondary,
+            }}
           >
             {content["home.introText"] ?? ""}
           </p>
@@ -480,8 +503,13 @@ const Home: React.FC = () => {
               to="/collaborators"
               className="no-underline font-bold text-sm px-6 py-2.5 rounded-xl border-2"
               style={{
-                color: "var(--color-primary)",
-                borderColor: "var(--color-primary)",
+                color: isDarkTheme
+                  ? sectionTextPrimary
+                  : "var(--color-primary)",
+                borderColor: isDarkTheme
+                  ? "rgba(148,163,184,0.45)"
+                  : "var(--color-primary)",
+                background: isDarkTheme ? "rgba(15,23,42,0.4)" : "transparent",
               }}
             >
               Meet the Team
@@ -506,7 +534,7 @@ const Home: React.FC = () => {
             <h2
               className="font-black text-xl"
               style={{
-                color: "var(--color-primary)",
+                color: sectionTextPrimary,
                 fontFamily: "var(--font-heading)",
               }}
             >
@@ -522,16 +550,20 @@ const Home: React.FC = () => {
             {announcements.length === 0 ? (
               <div
                 className="text-center py-8 rounded-xl border-2 border-dashed"
-                style={{ borderColor: "#e5e7eb" }}
+                style={{ borderColor: sectionCardBorder }}
               >
-                <p className="text-gray-400 text-sm">No announcements yet.</p>
+                <p className="text-sm" style={{ color: sectionTextMuted }}>
+                  No announcements yet.
+                </p>
               </div>
             ) : (
               announcements.map((a, idx) => (
                 <div
                   key={a.id}
-                  className="bg-white rounded-xl p-4"
+                  className="rounded-xl p-4"
                   style={{
+                    background: sectionCardBg,
+                    border: `1px solid ${sectionCardBorder}`,
                     borderLeft: "3px solid var(--color-accent)",
                     boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                     opacity: visible ? 1 : 0,
@@ -539,10 +571,16 @@ const Home: React.FC = () => {
                     transition: `opacity 0.5s ease ${0.1 + idx * 0.08}s, transform 0.5s ease ${0.1 + idx * 0.08}s`,
                   }}
                 >
-                  <p className="text-sm text-gray-700 leading-relaxed">
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: sectionTextSecondary }}
+                  >
                     {a.content}
                   </p>
-                  <p className="text-xs text-gray-400 mt-2 font-medium">
+                  <p
+                    className="text-xs mt-2 font-medium"
+                    style={{ color: sectionTextMuted }}
+                  >
                     {new Date(a.createdAt).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",
@@ -561,7 +599,7 @@ const Home: React.FC = () => {
       ══════════════════════════════════════════════════════════ */}
       <div
         className="border-t border-b"
-        style={{ borderColor: "#e5e7eb", background: "white" }}
+        style={{ borderColor: stripBorder, background: stripBg }}
       >
         <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
@@ -591,7 +629,7 @@ const Home: React.FC = () => {
               key={item.to}
               to={item.to}
               className="no-underline group flex items-start gap-4 p-5 rounded-2xl border transition-all"
-              style={{ borderColor: "#f0f0f0" }}
+              style={{ borderColor: stripBorder }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.borderColor = item.color;
                 (e.currentTarget as HTMLElement).style.boxShadow =
@@ -600,7 +638,8 @@ const Home: React.FC = () => {
                   "translateY(-2px)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "#f0f0f0";
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  stripBorder;
                 (e.currentTarget as HTMLElement).style.boxShadow = "none";
                 (e.currentTarget as HTMLElement).style.transform =
                   "translateY(0)";
@@ -613,13 +652,13 @@ const Home: React.FC = () => {
                 <AppIcon name={item.icon} size={20} />
               </div>
               <div>
-                <p
-                  className="font-black text-gray-900 text-sm"
-                  style={{ color: item.color }}
-                >
+                <p className="font-black text-sm" style={{ color: item.color }}>
                   {item.title}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                <p
+                  className="text-xs mt-0.5 leading-relaxed"
+                  style={{ color: sectionTextMuted }}
+                >
                   {item.desc}
                 </p>
               </div>
@@ -635,14 +674,10 @@ const Home: React.FC = () => {
           Remove this entire block if not needed.
       ══════════════════════════════════════════════════════════ */}
       {(collaborators.length > 0 || gallery.length > 0) && (
-        <TeamAndGallery collaborators={collaborators} gallery={gallery} />
-      )}
-
-      {/* ── Lab Head Full Profile Modal ── */}
-      {showLabHeadModal && hasLabHead && (
-        <LabHeadModal
-          labHead={labHead}
-          onClose={() => setShowLabHeadModal(false)}
+        <TeamAndGallery
+          collaborators={collaborators}
+          gallery={gallery}
+          isDarkTheme={isDarkTheme}
         />
       )}
     </div>
@@ -658,7 +693,8 @@ const Home: React.FC = () => {
 const TeamAndGallery: React.FC<{
   collaborators: any[];
   gallery: any[];
-}> = ({ collaborators, gallery }) => {
+  isDarkTheme: boolean;
+}> = ({ collaborators, gallery, isDarkTheme }) => {
   // ── Collaborator state ──
   const [collabIdx, setCollabIdx] = useState(0);
   const collabTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -719,12 +755,23 @@ const TeamAndGallery: React.FC<{
   const collab = collaborators[collabIdx];
   const galleryItem = gallery[galleryIdx];
 
+  const headingText = isDarkTheme ? "#e5e7eb" : "var(--color-primary)";
+  const softText = isDarkTheme ? "#cbd5e1" : "#6b7280";
+  const mutedText = isDarkTheme ? "#94a3b8" : "#9ca3af";
+  const sectionBorder = isDarkTheme ? "rgba(148,163,184,0.2)" : "#f0f0f0";
+  const cardBg = isDarkTheme
+    ? "linear-gradient(160deg, rgba(15,23,42,0.95) 60%, rgba(17,24,39,0.95) 100%)"
+    : "linear-gradient(160deg, rgba(255,255,255,0.97) 60%, rgba(235,240,255,0.95) 100%)";
+
   // Shared card height so both columns are equal
   const CARD_HEIGHT = 420;
 
   return (
     <section
-      style={{ background: "var(--color-bg)", borderTop: "1px solid #f0f0f0" }}
+      style={{
+        background: "var(--color-bg)",
+        borderTop: `1px solid ${sectionBorder}`,
+      }}
       className="py-16 px-6"
     >
       <div className="max-w-6xl mx-auto">
@@ -741,7 +788,7 @@ const TeamAndGallery: React.FC<{
             <h2
               className="font-black text-2xl"
               style={{
-                color: "var(--color-primary)",
+                color: headingText,
                 fontFamily: "var(--font-heading)",
               }}
             >
@@ -765,10 +812,7 @@ const TeamAndGallery: React.FC<{
             <div className="flex flex-col">
               {/* Sub-header */}
               <div className="flex items-center justify-between mb-4">
-                <p
-                  className="text-sm font-bold"
-                  style={{ color: "var(--color-primary)" }}
-                >
+                <p className="text-sm font-bold" style={{ color: headingText }}>
                   ✦ Our Collaborators
                 </p>
                 <div className="flex gap-2">
@@ -812,8 +856,7 @@ const TeamAndGallery: React.FC<{
                     height: "100%",
                     overflow: "hidden",
                     transition: "transform 0.3s, box-shadow 0.3s",
-                    background:
-                      "linear-gradient(160deg, rgba(255,255,255,0.97) 60%, rgba(235,240,255,0.95) 100%)",
+                    background: cardBg,
                     boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
                     backdropFilter: "blur(8px)",
                   }}
@@ -870,7 +913,7 @@ const TeamAndGallery: React.FC<{
 
                     <h3
                       className="font-black text-xl mt-5 leading-tight"
-                      style={{ color: "var(--color-primary)" }}
+                      style={{ color: headingText }}
                     >
                       {collab.name}
                     </h3>
@@ -890,7 +933,10 @@ const TeamAndGallery: React.FC<{
                     )}
 
                     {collab.affiliation && (
-                      <p className="text-sm text-gray-400 mt-2 font-medium inline-flex items-center gap-1.5">
+                      <p
+                        className="text-sm mt-2 font-medium inline-flex items-center gap-1.5"
+                        style={{ color: mutedText }}
+                      >
                         <AppIcon name="building" size={14} />{" "}
                         {collab.affiliation}
                       </p>
@@ -898,8 +944,9 @@ const TeamAndGallery: React.FC<{
 
                     {collab.shortBio && (
                       <p
-                        className="text-xs text-gray-500 mt-4 leading-relaxed"
+                        className="text-xs mt-4 leading-relaxed"
                         style={{
+                          color: softText,
                           display: "-webkit-box",
                           WebkitLineClamp: 3,
                           WebkitBoxOrient: "vertical",
@@ -958,10 +1005,7 @@ const TeamAndGallery: React.FC<{
             <div className="flex flex-col">
               {/* Sub-header */}
               <div className="flex items-center justify-between mb-4">
-                <p
-                  className="text-sm font-bold"
-                  style={{ color: "var(--color-primary)" }}
-                >
+                <p className="text-sm font-bold" style={{ color: headingText }}>
                   ✦ Gallery
                 </p>
                 <div className="flex items-center gap-2">
@@ -1235,8 +1279,9 @@ const LabHeadAvatar: React.FC<{
 // ══════════════════════════════════════════════════════════════
 const LabHeadModal: React.FC<{
   labHead: LabHeadData;
+  isDarkTheme: boolean;
   onClose: () => void;
-}> = ({ labHead, onClose }) => {
+}> = ({ labHead, isDarkTheme, onClose }) => {
   const interests = labHead.researchInterests
     ? labHead.researchInterests
         .split(",")
@@ -1251,6 +1296,13 @@ const LabHeadModal: React.FC<{
     { href: labHead.researchgate, label: "ResearchGate", color: "#00d2d3" },
   ].filter((l) => l.href);
 
+  const modalSurface = isDarkTheme ? "#0f172a" : "#ffffff";
+  const modalBodyBorder = isDarkTheme ? "rgba(148,163,184,0.2)" : "#f3f4f6";
+  const softPanelBg = isDarkTheme ? "rgba(15,23,42,0.65)" : "#f9fafb";
+  const softPanelBorder = isDarkTheme ? "rgba(148,163,184,0.2)" : "#f0f0f0";
+  const softHeading = isDarkTheme ? "#cbd5e1" : "#9ca3af";
+  const softText = isDarkTheme ? "#e2e8f0" : "#4b5563";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
@@ -1258,8 +1310,11 @@ const LabHeadModal: React.FC<{
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl w-full max-w-5xl my-8 overflow-hidden shadow-2xl"
-        style={{ boxShadow: "0 40px 80px rgba(0,0,0,0.35)" }}
+        className="rounded-3xl w-full max-w-5xl my-8 overflow-hidden shadow-2xl"
+        style={{
+          background: modalSurface,
+          boxShadow: "0 40px 80px rgba(0,0,0,0.35)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ── */}
@@ -1374,11 +1429,17 @@ const LabHeadModal: React.FC<{
         </div>
 
         {/* ── Body ── */}
-        <div className="p-7 flex flex-col gap-6 border-t border-gray-100">
+        <div
+          className="p-7 flex flex-col gap-6 border-t"
+          style={{ borderColor: modalBodyBorder }}
+        >
           {/* Research Interests */}
           {interests.length > 0 && (
             <div>
-              <h3 className="font-black text-xs text-gray-400 uppercase tracking-widest mb-3">
+              <h3
+                className="font-black text-xs uppercase tracking-widest mb-3"
+                style={{ color: softHeading }}
+              >
                 Research Interests
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -1403,10 +1464,16 @@ const LabHeadModal: React.FC<{
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {(labHead.email || labHead.phone) && (
               <div
-                className="bg-gray-50 rounded-2xl p-5"
-                style={{ border: "1px solid #f0f0f0" }}
+                className="rounded-2xl p-5"
+                style={{
+                  background: softPanelBg,
+                  border: `1px solid ${softPanelBorder}`,
+                }}
               >
-                <h3 className="font-black text-xs text-gray-400 uppercase tracking-widest mb-3">
+                <h3
+                  className="font-black text-xs uppercase tracking-widest mb-3"
+                  style={{ color: softHeading }}
+                >
                   Contact
                 </h3>
                 <div className="flex flex-col gap-2">
@@ -1420,7 +1487,10 @@ const LabHeadModal: React.FC<{
                     </a>
                   )}
                   {labHead.phone && (
-                    <p className="text-xs text-gray-600 inline-flex items-center gap-1.5">
+                    <p
+                      className="text-xs inline-flex items-center gap-1.5"
+                      style={{ color: softText }}
+                    >
                       <AppIcon name="phone" size={13} /> {labHead.phone}
                     </p>
                   )}
@@ -1430,10 +1500,16 @@ const LabHeadModal: React.FC<{
 
             {links.length > 0 && (
               <div
-                className="bg-gray-50 rounded-2xl p-5"
-                style={{ border: "1px solid #f0f0f0" }}
+                className="rounded-2xl p-5"
+                style={{
+                  background: softPanelBg,
+                  border: `1px solid ${softPanelBorder}`,
+                }}
               >
-                <h3 className="font-black text-xs text-gray-400 uppercase tracking-widest mb-3">
+                <h3
+                  className="font-black text-xs uppercase tracking-widest mb-3"
+                  style={{ color: softHeading }}
+                >
                   Academic Profiles
                 </h3>
                 <div className="flex flex-wrap gap-2">

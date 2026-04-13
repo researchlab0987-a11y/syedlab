@@ -4,9 +4,13 @@ import type { Publication } from "../types";
 
 interface Props {
   publication: Publication;
+  onOpenDetails?: () => void;
 }
 
-const PublicationCard: React.FC<Props> = ({ publication: p }) => {
+const PublicationCard: React.FC<Props> = ({
+  publication: p,
+  onOpenDetails,
+}) => {
   const [expanded, setExpanded] = useState(false);
   const isOngoing = p.type === "ongoing";
   const { theme } = useThemeContext();
@@ -98,6 +102,15 @@ const PublicationCard: React.FC<Props> = ({ publication: p }) => {
         )}
 
         <div className="flex items-center gap-3 flex-wrap">
+          {onOpenDetails && (
+            <button
+              onClick={onOpenDetails}
+              className="text-sm font-semibold border-none cursor-pointer bg-transparent p-0"
+              style={{ color: "var(--color-secondary)" }}
+            >
+              View details
+            </button>
+          )}
           {!isOngoing && p.url && (
             <a
               href={p.url}

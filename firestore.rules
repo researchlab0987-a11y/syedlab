@@ -14,6 +14,43 @@ service cloud.firestore {
     function isCollaborator() {
       return isSignedIn() && (getRole() == 'collaborator' || getRole() == 'admin');
     }
+    function isStrictCollaborator() {
+      return isSignedIn() && getRole() == 'collaborator';
+    }
+    function isChatParticipant(chatId) {
+      return isStrictCollaborator()
+        && get(/databases/$(database)/documents/privateChats/$(chatId)).data.participants.hasAny([request.auth.uid]);
+    }
+    function isPublicationOwner() {
+      return isSignedIn()
+        && (
+          resource.data.createdByUid == request.auth.uid
+          || (
+            !(resource.data.createdByUid is string)
+            && resource.data.contributorUids is list
+            && resource.data.contributorUids.size() == 1
+            && resource.data.contributorUids.hasAny([request.auth.uid])
+          )
+        );
+    }
+    function isPublicationSelfDisclaimer() {
+      return isCollaborator()
+        && resource.data.createdByUid != request.auth.uid
+        && resource.data.contributorUids is list
+        && request.resource.data.contributorUids is list
+        && resource.data.contributorUids.hasAny([request.auth.uid])
+        && !request.resource.data.contributorUids.hasAny([request.auth.uid])
+        && request.resource.data.contributorUids.size() == resource.data.contributorUids.size() - 1
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'contributorUids',
+          'authorEntries',
+          'authors',
+          'updatedAt'
+        ]);
+    }
+    function isGalleryOwner() {
+      return isSignedIn() && resource.data.uploaderUid == request.auth.uid;
+    }
 
     match /siteContent/{docId} {
       allow read: if true;
@@ -31,7 +68,9 @@ service cloud.firestore {
     }
     match /publications/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isCollaborator() && request.resource.data.createdByUid == request.auth.uid;
+      allow update: if isAdmin() || isPublicationOwner() || isPublicationSelfDisclaimer();
+      allow delete: if isAdmin() || isPublicationOwner();
     }
     match /researchIdeas/{docId} {
       allow read: if true;
@@ -51,7 +90,9 @@ service cloud.firestore {
     }
     match /gallery/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin() || (isCollaborator() && isGalleryOwner());
+      allow delete: if isAdmin() || (isCollaborator() && isGalleryOwner());
     }
     match /pendingRequests/{docId} {
       allow create: if true;
@@ -60,6 +101,47 @@ service cloud.firestore {
     match /contactMessages/{docId} {
       allow create: if true;
       allow read, update, delete: if isAdmin();
+    }
+    match /privateChats/{chatId} {
+      allow read: if isStrictCollaborator()
+        && resource.data.participants is list
+        && resource.data.participants.hasAny([request.auth.uid]);
+
+      allow create: if isStrictCollaborator()
+        && request.resource.data.participants is list
+        && request.resource.data.participants.size() == 2
+        && request.resource.data.participants.hasAny([request.auth.uid]);
+
+      allow update: if isStrictCollaborator()
+        && resource.data.participants is list
+        && resource.data.participants.hasAny([request.auth.uid])
+        && request.resource.data.participants == resource.data.participants;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isChatParticipant(chatId);
+
+        allow create: if isChatParticipant(chatId)
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.recipientId is string
+          && request.resource.data.encryptedByUser is map
+          && request.resource.data.expiresAt is timestamp;
+
+        allow update: if isChatParticipant(chatId)
+          && resource.data.recipientId == request.auth.uid
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['readAt']);
+
+        allow delete: if false;
+      }
+    }
+    match /privateChatNotifications/{docId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    match /privateChatNotificationEvents/{docId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
     match /users/{userId} {
       allow read: if isSignedIn();

@@ -1,10 +1,28 @@
 import React from "react";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
 import ContactForm from "../components/ContactForm";
+import { useThemeContext } from "../context/ThemeContext";
 import { useSiteContent } from "../firebase/hooks";
 
 const Contact: React.FC = () => {
   const { content, loading } = useSiteContent();
+  const { theme } = useThemeContext();
+
+  const isDarkTheme = React.useMemo(() => {
+    const clean = (theme.backgroundColor ?? "").replace("#", "").trim();
+    if (clean.length !== 6) return false;
+    const r = Number.parseInt(clean.slice(0, 2), 16);
+    const g = Number.parseInt(clean.slice(2, 4), 16);
+    const b = Number.parseInt(clean.slice(4, 6), 16);
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance < 140;
+  }, [theme.backgroundColor]);
+
+  const headingText = isDarkTheme ? "#e5e7eb" : "var(--color-primary)";
+  const bodyText = isDarkTheme ? "#cbd5e1" : "#374151";
+  const mutedText = isDarkTheme ? "#94a3b8" : "#9ca3af";
+  const cardBg = isDarkTheme ? "rgba(15,23,42,0.7)" : "#ffffff";
+  const cardBorder = isDarkTheme ? "rgba(148,163,184,0.22)" : "#e5e7eb";
 
   if (loading)
     return (
@@ -20,7 +38,7 @@ const Contact: React.FC = () => {
     );
 
   return (
-    <div>
+    <div style={{ background: "var(--color-bg)" }}>
       {/* Hero */}
       <section
         className="relative overflow-hidden py-20 text-center px-4"
@@ -59,7 +77,7 @@ const Contact: React.FC = () => {
           <h2
             className="font-black text-xl"
             style={{
-              color: "var(--color-primary)",
+              color: headingText,
               fontFamily: "var(--font-heading)",
             }}
           >
@@ -99,7 +117,10 @@ const Contact: React.FC = () => {
                   <AppIcon name={item.icon} size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                  <p
+                    className="text-xs font-bold uppercase tracking-wider mb-0.5"
+                    style={{ color: mutedText }}
+                  >
                     {item.label}
                   </p>
                   {item.href ? (
@@ -111,7 +132,9 @@ const Contact: React.FC = () => {
                       {item.value}
                     </a>
                   ) : (
-                    <p className="text-sm text-gray-700">{item.value}</p>
+                    <p className="text-sm" style={{ color: bodyText }}>
+                      {item.value}
+                    </p>
                   )}
                 </div>
               </div>
@@ -121,7 +144,7 @@ const Contact: React.FC = () => {
           {content["contact.mapEmbed"] && (
             <div
               className="rounded-xl overflow-hidden border mt-2"
-              style={{ borderColor: "#e5e7eb" }}
+              style={{ borderColor: cardBorder }}
             >
               <iframe
                 src={content["contact.mapEmbed"]}
@@ -139,13 +162,16 @@ const Contact: React.FC = () => {
         {/* Contact Form */}
         <div className="lg:col-span-3">
           <div
-            className="bg-white rounded-2xl p-8 shadow-md border"
-            style={{ borderColor: "#e5e7eb" }}
+            className="rounded-2xl p-8 shadow-md border"
+            style={{
+              background: cardBg,
+              borderColor: cardBorder,
+            }}
           >
             <h2
               className="font-black text-xl mb-6"
               style={{
-                color: "var(--color-primary)",
+                color: headingText,
                 fontFamily: "var(--font-heading)",
               }}
             >

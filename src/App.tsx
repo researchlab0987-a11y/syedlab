@@ -8,10 +8,13 @@ import { ThemeProvider } from "./context/ThemeContext";
 
 // Pages
 import About from "./pages/About";
+import Chat from "./pages/Chat";
+import CollaboratorProfilePage from "./pages/CollaboratorProfilePage";
 import Collaborators from "./pages/Collaborators";
 import Contact from "./pages/Contact";
 import Home from "./pages/Home";
 import IdeaDetail from "./pages/IdeaDetail";
+import LabHead from "./pages/LabHead";
 import Login from "./pages/Login";
 import Publications from "./pages/Publications";
 import ResearchIdeas from "./pages/ResearchIdeas";
@@ -39,11 +42,27 @@ const App: React.FC = () => {
                   {/* Public pages */}
                   <Route path="/" element={<Home />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/lab-head" element={<LabHead />} />
                   <Route path="/collaborators" element={<Collaborators />} />
+                  <Route
+                    path="/collaborators/:uid"
+                    element={<CollaboratorProfilePage />}
+                  />
                   <Route path="/publications" element={<Publications />} />
                   <Route path="/research-ideas" element={<ResearchIdeas />} />
                   <Route path="/research-ideas/:id" element={<IdeaDetail />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route
+                    path="/chat"
+                    element={
+                      <ProtectedRoute
+                        allowedRoles={["collaborator"]}
+                        redirectTo="/login"
+                      >
+                        <Chat />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/gallery" element={<Gallery />} />
                   <Route path="/login" element={<Login />} />
                   <Route

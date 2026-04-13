@@ -103,9 +103,37 @@ export function usePublications() {
     const unsub = onSnapshot(
       collection(db, "publications"),
       (snap) => {
-        const all = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }) as Publication)
-          .sort((a, b) => b.year - a.year);
+        const canonicalByKey = new Map<string, Publication>();
+        snap.docs.forEach((d) => {
+          const pub = { id: d.id, ...d.data() } as Publication;
+          if (!pub.hasLabHeadAuthorship) return;
+
+          const dedupeKey =
+            (pub.doi ?? "").trim().toLowerCase() ||
+            (pub.paperKey ?? "").trim().toLowerCase() ||
+            d.id;
+
+          const existing = canonicalByKey.get(dedupeKey);
+          if (!existing) {
+            canonicalByKey.set(dedupeKey, pub);
+            return;
+          }
+
+          // Keep the richer record if duplicate keys exist due to old writes.
+          const existingScore =
+            (existing.authorEntries?.length ?? 0) +
+            (existing.contributorUids?.length ?? 0) +
+            (existing.abstract ? 1 : 0);
+          const nextScore =
+            (pub.authorEntries?.length ?? 0) +
+            (pub.contributorUids?.length ?? 0) +
+            (pub.abstract ? 1 : 0);
+          if (nextScore > existingScore) canonicalByKey.set(dedupeKey, pub);
+        });
+
+        const all = Array.from(canonicalByKey.values()).sort(
+          (a, b) => b.year - a.year,
+        );
         setOngoing(all.filter((p) => p.type === "ongoing"));
         setPublished(all.filter((p) => p.type === "published"));
         setLoading(false);

@@ -8,6 +8,7 @@
 import React, { useState } from "react";
 import AppIcon from "../components/AppIcon";
 import CloudinaryUpload from "../components/CloudinaryUpload";
+import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/config";
 import { useGallery } from "../firebase/hooks";
 import type { CloudinaryUploadResult, GalleryItem } from "../types";
@@ -16,6 +17,7 @@ import type { CloudinaryUploadResult, GalleryItem } from "../types";
 const emptyForm = () => ({ title: "", description: "", imageUrl: "" });
 
 const ManageGallery: React.FC = () => {
+  const { appUser } = useAuth();
   const { gallery, loading } = useGallery();
   const [modal, setModal] = useState<{
     mode: "add" | "edit";
@@ -23,6 +25,7 @@ const ManageGallery: React.FC = () => {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   // ── Save (add or edit) ───────────────────────────────────────
   const save = async () => {
@@ -44,7 +47,11 @@ const ManageGallery: React.FC = () => {
           description: modal.data.description?.trim() ?? "",
           imageUrl: modal.data.imageUrl.trim(),
           order: maxOrder + 1,
+          uploaderUid: appUser?.uid ?? "",
+          uploaderName: appUser?.name ?? "Admin",
+          uploaderEmail: appUser?.email ?? "",
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         });
       } else {
         const { id, ...data } = modal.data as GalleryItem;
@@ -52,6 +59,7 @@ const ManageGallery: React.FC = () => {
           title: data.title.trim(),
           description: data.description?.trim() ?? "",
           imageUrl: data.imageUrl.trim(),
+          updatedAt: new Date().toISOString(),
         });
       }
       setModal(null);
@@ -96,17 +104,9 @@ const ManageGallery: React.FC = () => {
             Manage Gallery
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            {gallery.length} image{gallery.length !== 1 ? "s" : ""} · drag order
-            with the arrows
+            {gallery.length} image{gallery.length !== 1 ? "s" : ""} in gallery
           </p>
         </div>
-        <button
-          onClick={() => setModal({ mode: "add", data: emptyForm() })}
-          className="text-sm font-bold px-5 py-2.5 rounded-xl text-white border-none cursor-pointer"
-          style={{ background: "var(--color-primary)" }}
-        >
-          + Add Image
-        </button>
       </div>
 
       {/* ── Loading ── */}
@@ -120,114 +120,141 @@ const ManageGallery: React.FC = () => {
             }}
           />
         </div>
-      ) : gallery.length === 0 ? (
-        <div
-          className="text-center py-20 rounded-2xl border-2 border-dashed"
-          style={{ borderColor: "#e5e7eb" }}
-        >
-          <div className="mb-3 inline-flex text-gray-400">
-            <AppIcon name="gallery" size={44} />
-          </div>
-          <p className="text-gray-500 font-semibold">No images yet.</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Click "+ Add Image" to get started.
-          </p>
-        </div>
       ) : (
-        /* ── Image list ── */
-        <div className="flex flex-col gap-3">
-          {gallery.map((item, idx) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-2xl border flex items-center gap-4 overflow-hidden"
+        <>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <button
+              type="button"
+              onClick={() => setModal({ mode: "add", data: emptyForm() })}
+              className="group relative aspect-square overflow-hidden rounded-2xl border-2 border-dashed transition-all"
               style={{
-                borderColor: "#e5e7eb",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                borderColor: "#cbd5e1",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(238,245,241,0.98) 100%)",
               }}
             >
-              {/* Thumbnail */}
-              <div className="flex-shrink-0" style={{ width: 100, height: 72 }}>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-md"
+                  style={{ background: "var(--color-primary)" }}
+                >
+                  <span className="text-4xl leading-none">+</span>
+                </div>
+                <p className="mt-4 text-sm font-black text-gray-900">
+                  Add Image
+                </p>
+              </div>
+            </button>
+
+            {gallery.map((item, idx) => (
+              <div
+                key={item.id}
+                className="group relative aspect-square overflow-hidden rounded-2xl border bg-white shadow-sm"
+                style={{ borderColor: "#e5e7eb" }}
+                onMouseLeave={() =>
+                  setOpenMenuId((current) =>
+                    current === item.id ? null : current,
+                  )
+                }
+              >
                 <img
                   src={item.imageUrl}
                   alt={item.title}
+                  className="h-full w-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      "https://via.placeholder.com/100x72?text=No+Image";
-                  }}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
+                      "https://via.placeholder.com/500x500?text=No+Image";
                   }}
                 />
-              </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0 py-3">
-                <p className="font-bold text-gray-900 text-sm truncate">
-                  {item.title}
-                </p>
-                {item.description && (
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">
-                    {item.description}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-3 pt-10">
+                  <p className="text-sm font-black text-white line-clamp-1">
+                    {item.title}
                   </p>
-                )}
-                <p className="text-xs text-gray-300 mt-1">
-                  Order: {item.order}
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 pr-4 flex-shrink-0">
-                {/* Reorder */}
-                <div className="flex flex-col gap-1">
-                  <button
-                    onClick={() => reorder(item, "up")}
-                    disabled={idx === 0}
-                    className="text-xs px-2 py-1 rounded border cursor-pointer disabled:opacity-30"
-                    style={{
-                      borderColor: "#e5e7eb",
-                      background: "white",
-                      color: "#374151",
-                    }}
-                    title="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    onClick={() => reorder(item, "down")}
-                    disabled={idx === gallery.length - 1}
-                    className="text-xs px-2 py-1 rounded border cursor-pointer disabled:opacity-30"
-                    style={{
-                      borderColor: "#e5e7eb",
-                      background: "white",
-                      color: "#374151",
-                    }}
-                    title="Move down"
-                  >
-                    ↓
-                  </button>
+                  <p className="text-xs text-white/80 mt-1 line-clamp-1">
+                    Uploaded by {item.uploaderName || "Unknown"}
+                  </p>
                 </div>
 
+                {item.description && (
+                  <div className="absolute inset-x-3 bottom-14 rounded-xl border border-white/25 bg-black/45 px-3 py-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <p className="text-xs text-white/90 line-clamp-3">
+                      {item.description}
+                    </p>
+                  </div>
+                )}
+
                 <button
-                  onClick={() => setModal({ mode: "edit", data: { ...item } })}
-                  className="text-xs font-bold px-3 py-1.5 rounded-lg text-white border-none cursor-pointer"
-                  style={{ background: "var(--color-primary)" }}
+                  type="button"
+                  onClick={() =>
+                    setOpenMenuId((current) =>
+                      current === item.id ? null : item.id,
+                    )
+                  }
+                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white opacity-100 transition-all duration-200 hover:bg-black/50 sm:opacity-0 sm:group-hover:opacity-100"
+                  aria-label="Open image menu"
                 >
-                  Edit
+                  <AppIcon name="more" size={18} />
                 </button>
-                <button
-                  onClick={() => remove(item)}
-                  disabled={deletingId === item.id}
-                  className="text-xs font-bold px-3 py-1.5 rounded-lg text-white border-none cursor-pointer disabled:opacity-60"
-                  style={{ background: "#ef4444" }}
-                >
-                  {deletingId === item.id ? "..." : "Delete"}
-                </button>
+
+                {openMenuId === item.id && (
+                  <div className="absolute right-3 top-14 z-10 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModal({ mode: "edit", data: { ...item } });
+                        setOpenMenuId(null);
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      <AppIcon name="about" size={14} />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setOpenMenuId(null);
+                        await reorder(item, "up");
+                      }}
+                      disabled={idx === 0}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                    >
+                      <span>↑</span>
+                      Move Up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setOpenMenuId(null);
+                        await reorder(item, "down");
+                      }}
+                      disabled={idx === gallery.length - 1}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                    >
+                      <span>↓</span>
+                      Move Down
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(item)}
+                      disabled={deletingId === item.id}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <AppIcon name="logout" size={14} />
+                      {deletingId === item.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {gallery.length === 0 && (
+            <p className="mt-4 text-center text-sm text-gray-500">
+              No images yet. Use the plus tile to add your first image.
+            </p>
+          )}
+        </>
       )}
 
       {/* ── Add / Edit Modal ── */}

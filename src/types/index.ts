@@ -68,7 +68,25 @@ export interface Publication {
   doi: string;
   type: "ongoing" | "published";
   tags: string[];
+  // Canonical shared-paper model
+  paperKey?: string;
+  hasLabHeadAuthorship?: boolean;
+  authorEntries?: PublicationAuthorEntry[];
+  contributorUids?: string[];
+  createdByUid?: string;
+  updatedAt?: string;
   createdAt: string;
+}
+
+export type PublicationAuthorEntryType = "linked" | "external";
+
+export interface PublicationAuthorEntry {
+  type: PublicationAuthorEntryType;
+  name: string;
+  uid?: string;
+  photo?: string;
+  role?: UserRole | "external";
+  affiliation?: string;
 }
 
 export interface ResearchIdea {
@@ -83,6 +101,10 @@ export interface ResearchIdea {
   createdAt: string;
   updatedAt: string;
   commentCount: number;
+  isPublished?: boolean; // moderation: draft vs published
+  isHidden?: boolean; // moderation: hide from public view
+  isFlagged?: boolean; // moderation: flagged for review
+  isPinned?: boolean; // moderation: featured/pinned idea
 }
 
 export interface Comment {
@@ -111,6 +133,9 @@ export interface Announcement {
   content: string;
   createdAt: string;
   order: number;
+  updatedAt?: string;
+  isPinned?: boolean;
+  isHidden?: boolean;
 }
 
 export interface ThemeSettings {
@@ -201,4 +226,8 @@ export interface GalleryItem {
   imageUrl: string;
   order: number;
   createdAt: string;
+  updatedAt?: string;
+  uploaderUid?: string;
+  uploaderName?: string;
+  uploaderEmail?: string;
 }

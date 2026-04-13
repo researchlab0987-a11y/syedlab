@@ -1,9 +1,7 @@
 import {
   BadgeCheck,
-  BriefcaseBusiness,
   Code2,
   Laptop,
-  Mail,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -53,17 +51,17 @@ const DeveloperProfile: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { displayed: typedName, done: nameDone } = useTypewriter(
-    "Abdullah Al Mazid",
+    "Abdullah",
     55,
     phase === 2,
   );
   const { displayed: typedRole, done: roleDone } = useTypewriter(
-    "> Full_Stack_Developer",
+    "> AI_Research_Engineer_In_Progress",
     45,
     nameDone,
   );
   const { displayed: typedSub } = useTypewriter(
-    "Aspiring Data Scientist & ML Engineer",
+    "Student (Tech + AI Enthusiast) | Chattogram, Bangladesh",
     35,
     roleDone,
   );
@@ -117,11 +115,13 @@ const DeveloperProfile: React.FC = () => {
 
   const skills = useMemo(
     () => [
-      { label: "React / TypeScript", level: 95, color: "#61dafb" },
-      { label: "Firebase / Firestore", level: 90, color: "#ffa000" },
-      { label: "Tailwind CSS", level: 92, color: "#38bdf8" },
-      { label: "Node.js", level: 85, color: "#68a063" },
-      { label: "UI / UX Design", level: 88, color: "#a78bfa" },
+      { label: "Transformer Architecture", level: 90, color: "#06b6d4" },
+      { label: "SAM Internals & Fine-Tuning", level: 92, color: "#22c55e" },
+      { label: "LoRA / ConvLoRA / VPT", level: 89, color: "#f59e0b" },
+      { label: "Federated Learning Concepts", level: 78, color: "#6366f1" },
+      { label: "PyTorch Model Engineering", level: 85, color: "#ec4899" },
+      { label: "Full-Stack + Deployment", level: 82, color: "#38bdf8" },
+      { label: "ESP32 + IoT Data Systems", level: 80, color: "#14b8a6" },
     ],
     [],
   );
@@ -526,7 +526,9 @@ const DeveloperProfile: React.FC = () => {
                   >
                     <span style={{ color: "#6366f1" }}>~/secret</span>
                     <span style={{ color: "#475569" }}> $ </span>
-                    <span style={{ color: "#64748b" }}>whoami</span>
+                    <span style={{ color: "#64748b" }}>
+                      whoami --deep-profile
+                    </span>
                   </div>
                   <h1
                     style={{
@@ -583,44 +585,37 @@ const DeveloperProfile: React.FC = () => {
                       letterSpacing: "0.04em",
                     }}
                   >
-                    Undergraduate · BUET, Dept. of IPE
+                    Deep technical learner focused on understanding and
+                    modifying AI systems from the architecture level.
                   </p>
-                  {/* Links */}
+                  {/* Focus chips */}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
                       {
-                        label: "LinkedIn",
-                        href: "https://linkedin.com/in/your-profile",
-                        bg: "#0a66c2",
-                        icon: BriefcaseBusiness,
-                      },
-                      {
-                        label: "GitHub",
-                        href: "https://github.com/your-username",
-                        bg: "#e6edf3",
-                        tc: "#0d1117",
+                        label: "Primary: Artificial Intelligence",
+                        bg: "#0ea5e9",
                         icon: Code2,
                       },
                       {
-                        label: "Email",
-                        href: "mailto:your@email.com",
-                        bg: "#ea4335",
-                        icon: Mail,
+                        label: "Advanced Model Engineering",
+                        bg: "#8b5cf6",
+                        icon: BadgeCheck,
+                      },
+                      {
+                        label: "IoT + Full-Stack Builder",
+                        bg: "#16a34a",
+                        icon: Laptop,
                       },
                     ].map(
                       (l: {
                         label: string;
-                        href: string;
                         bg: string;
                         tc?: string;
                         icon: LucideIcon;
                       }) => (
-                        <a
+                        <div
                           key={l.label}
-                          href={l.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="link-btn no-underline"
+                          className="link-btn"
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
@@ -637,7 +632,7 @@ const DeveloperProfile: React.FC = () => {
                         >
                           <l.icon size={13} strokeWidth={2.2} />
                           {l.label}
-                        </a>
+                        </div>
                       ),
                     )}
                   </div>
@@ -702,7 +697,8 @@ const DeveloperProfile: React.FC = () => {
                 }}
               >
                 <span style={{ color: "#6366f1" }}>$</span>
-                <span style={{ color: "#64748b" }}> cat</span> skills.json
+                <span style={{ color: "#64748b" }}> cat</span>{" "}
+                engineering_profile.json
               </p>
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 16 }}
@@ -811,87 +807,79 @@ const DeveloperProfile: React.FC = () => {
                   letterSpacing: "0.12em",
                 }}
               >
-                PROJECTS
+                CURRENT PROJECTS
               </span>
             </div>
             <div style={{ padding: "20px 24px" }}>
-              <div
-                style={{
-                  borderRadius: 16,
-                  padding: 20,
-                  background: "rgba(99,102,241,0.05)",
-                  border: "1px solid rgba(99,102,241,0.12)",
-                  display: "flex",
-                  gap: 18,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 14,
-                    background: "linear-gradient(135deg,#1e3a5f,#2563eb)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    color: "white",
-                  }}
-                >
-                  <BadgeCheck size={24} strokeWidth={2} />
-                </div>
-                <div style={{ flex: 1, minWidth: 160 }}>
-                  <h3
+              <div style={{ display: "grid", gap: 12 }}>
+                {[
+                  {
+                    title: "Sensor Data System",
+                    desc: "10+ sensor devices sending data to server, persisted in CSV/MySQL, visualized through dashboard pipelines.",
+                    tags: ["ESP32", "Sensors", "MySQL", "Realtime Dashboard"],
+                  },
+                  {
+                    title: "SAM Fine-Tuning Research",
+                    desc: "Experimental architecture work with ConvLoRA, U-Net prompt generation, Prompt Adapters, VPT, and RL-based prompt optimization planning.",
+                    tags: ["SAM", "ConvLoRA", "VPT", "Prompt Adapters", "RL"],
+                  },
+                  {
+                    title: "Web Dashboard System",
+                    desc: "Sidebar-centric data UI with dynamic backend fetching and planned admin/API architecture for robust operations.",
+                    tags: ["React", "PHP", "Flask", "API Design", "Deployment"],
+                  },
+                ].map((project) => (
+                  <div
+                    key={project.title}
                     style={{
-                      color: "white",
-                      fontWeight: 900,
-                      fontSize: 15,
-                      marginBottom: 8,
-                      fontFamily: "'Syne',sans-serif",
+                      borderRadius: 16,
+                      padding: 18,
+                      background: "rgba(99,102,241,0.05)",
+                      border: "1px solid rgba(99,102,241,0.12)",
                     }}
                   >
-                    Rahman Research Lab
-                  </h3>
-                  <p
-                    style={{
-                      fontSize: 12,
-                      color: "rgba(255,255,255,0.45)",
-                      lineHeight: 1.75,
-                      marginBottom: 14,
-                    }}
-                  >
-                    Full-stack lab management platform. Admin + collaborator
-                    portals, publications, nested comments, gallery, EmailJS,
-                    Cloudinary, Firebase Auth + Firestore.
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {[
-                      "React",
-                      "TypeScript",
-                      "Firebase",
-                      "Cloudinary",
-                      "EmailJS",
-                      "Tailwind",
-                    ].map((t) => (
-                      <span
-                        key={t}
-                        style={{
-                          fontSize: 10,
-                          padding: "3px 10px",
-                          borderRadius: 99,
-                          background: "rgba(99,102,241,0.18)",
-                          color: "#a5b4fc",
-                          fontWeight: 700,
-                          border: "1px solid rgba(99,102,241,0.25)",
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        {t}
-                      </span>
-                    ))}
+                    <h3
+                      style={{
+                        color: "white",
+                        fontWeight: 900,
+                        fontSize: 15,
+                        marginBottom: 8,
+                        fontFamily: "'Syne',sans-serif",
+                      }}
+                    >
+                      {project.title}
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: 12,
+                        color: "rgba(255,255,255,0.45)",
+                        lineHeight: 1.7,
+                        marginBottom: 10,
+                      }}
+                    >
+                      {project.desc}
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {project.tags.map((t) => (
+                        <span
+                          key={t}
+                          style={{
+                            fontSize: 10,
+                            padding: "3px 10px",
+                            borderRadius: 99,
+                            background: "rgba(99,102,241,0.18)",
+                            color: "#a5b4fc",
+                            fontWeight: 700,
+                            border: "1px solid rgba(99,102,241,0.25)",
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -925,7 +913,11 @@ const DeveloperProfile: React.FC = () => {
                 <span style={{ color: "#f59e0b" }}>/secret-developer</span>
                 <br />
                 <span style={{ color: "#6366f1" }}>// </span>built with{" "}
-                <span style={{ color: "#ef4444" }}>❤</span> by Abdullah Al Mazid
+                <span style={{ color: "#ef4444" }}>❤</span> by Abdullah
+                <br />
+                <span style={{ color: "#6366f1" }}>// </span>trajectory: AI
+                Research Engineer {"->"} Applied ML Engineer {"->"} Systems + AI
+                Hybrid
               </p>
             </div>
             <br />

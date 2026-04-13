@@ -1,14 +1,26 @@
 import { deleteApp, initializeApp } from "firebase/app";
 import {
+  browserLocalPersistence,
   createUserWithEmailAndPassword,
   type User as FirebaseUser,
   getAuth,
   onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { generateChatKeyBundle } from "../chat/crypto";
+import { upsertUserChatPublicKey } from "../chat/service";
 import { auth, db } from "../firebase/config";
 import type { User, UserRole } from "../types";
 
@@ -37,6 +49,18 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const CHAT_KEY_STORAGE_PREFIX = "rl_chat_keybundle_v1_";
+const ADMIN_EMAIL = "admin@rahmanlab.com";
+
+const normalizeRole = (role: unknown): UserRole | null => {
+  const value = String(role ?? "")
+    .trim()
+    .toLowerCase();
+  if (value === "admin" || value === "collaborator" || value === "pending") {
+    return value as UserRole;
+  }
+  return null;
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -46,20 +70,258 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
-      setFirebaseUser(fbUser);
-      if (fbUser) {
-        const snap = await getDoc(doc(db, "users", fbUser.uid));
-        if (snap.exists()) {
-          setAppUser({ uid: fbUser.uid, ...snap.data() } as User);
-        }
-      } else {
-        setAppUser(null);
+    let unsub = () => {};
+    let active = true;
+
+    const initAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch {
+        // If persistence cannot be set (browser policy), continue with SDK defaults.
       }
+
+      if (!active) return;
+
+      unsub = onAuthStateChanged(auth, async (fbUser) => {
+        setLoading(true);
+        // On hard refresh, some environments emit a transient null event
+        // before restoring persisted auth. Give it a short grace window.
+        let resolvedUser = fbUser;
+        if (!resolvedUser) {
+          const immediate = auth.currentUser;
+          if (immediate) {
+            resolvedUser = immediate;
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 350));
+            resolvedUser = auth.currentUser;
+          }
+        }
+
+        setFirebaseUser(resolvedUser);
+        if (resolvedUser) {
+          const isSeededAdmin =
+            (resolvedUser.email ?? "").trim().toLowerCase() === ADMIN_EMAIL;
+          const normalizedEmail = (resolvedUser.email ?? "")
+            .trim()
+            .toLowerCase();
+
+          const resolveCollaboratorByEmail = async () => {
+            if (!normalizedEmail) return null;
+            const collabByEmail = await getDocs(
+              query(
+                collection(db, "collaborators"),
+                where("email", "==", normalizedEmail),
+              ),
+            );
+            return collabByEmail.docs[0] ?? null;
+          };
+
+          const applyCollaborator = async (collabDoc: { data: () => any }) => {
+            const collab = collabDoc.data() as {
+              name?: string;
+              email?: string;
+              createdAt?: string;
+            };
+
+            await setDoc(
+              doc(db, "users", resolvedUser.uid),
+              {
+                email: collab.email || resolvedUser.email || "",
+                name: collab.name || resolvedUser.displayName || "User",
+                role: "collaborator",
+                createdAt: collab.createdAt || new Date().toISOString(),
+              },
+              { merge: true },
+            );
+
+            setAppUser({
+              uid: resolvedUser.uid,
+              email: collab.email || resolvedUser.email || "",
+              name: collab.name || resolvedUser.displayName || "User",
+              role: "collaborator",
+              createdAt: collab.createdAt || new Date().toISOString(),
+            });
+          };
+
+          const snap = await getDoc(doc(db, "users", resolvedUser.uid));
+          if (snap.exists()) {
+            const row = snap.data() as Partial<User>;
+            const normalizedRole = normalizeRole(row.role);
+
+            if (normalizedRole) {
+              setAppUser({
+                uid: resolvedUser.uid,
+                email: row.email || resolvedUser.email || "",
+                name: row.name || resolvedUser.displayName || "User",
+                role: normalizedRole,
+                createdAt: row.createdAt || new Date().toISOString(),
+              });
+            } else {
+              const collabByUid = await getDocs(
+                query(
+                  collection(db, "collaborators"),
+                  where("uid", "==", resolvedUser.uid),
+                ),
+              );
+              const collabDoc = collabByUid.docs[0];
+              if (collabDoc) {
+                const collab = collabDoc.data() as {
+                  name?: string;
+                  email?: string;
+                  createdAt?: string;
+                };
+                setAppUser({
+                  uid: resolvedUser.uid,
+                  email: row.email || collab.email || resolvedUser.email || "",
+                  name:
+                    row.name ||
+                    collab.name ||
+                    resolvedUser.displayName ||
+                    "User",
+                  role: "collaborator",
+                  createdAt:
+                    row.createdAt ||
+                    collab.createdAt ||
+                    new Date().toISOString(),
+                });
+              } else {
+                const collabByEmailDoc = await resolveCollaboratorByEmail();
+                if (collabByEmailDoc) {
+                  await applyCollaborator(collabByEmailDoc);
+                } else if (isSeededAdmin) {
+                  setAppUser({
+                    uid: resolvedUser.uid,
+                    email: resolvedUser.email || ADMIN_EMAIL,
+                    name: resolvedUser.displayName || "Admin Rahman",
+                    role: "admin",
+                    createdAt: new Date().toISOString(),
+                  });
+                } else {
+                  setAppUser(null);
+                }
+              }
+            }
+          } else {
+            if (isSeededAdmin) {
+              setAppUser({
+                uid: resolvedUser.uid,
+                email: resolvedUser.email || ADMIN_EMAIL,
+                name: resolvedUser.displayName || "Admin Rahman",
+                role: "admin",
+                createdAt: new Date().toISOString(),
+              });
+              setLoading(false);
+              return;
+            }
+
+            const collabByUid = await getDocs(
+              query(
+                collection(db, "collaborators"),
+                where("uid", "==", resolvedUser.uid),
+              ),
+            );
+
+            const collabDoc = collabByUid.docs[0];
+            if (collabDoc) {
+              await applyCollaborator(collabDoc);
+            } else {
+              const collabByEmailDoc = await resolveCollaboratorByEmail();
+              if (collabByEmailDoc) {
+                await applyCollaborator(collabByEmailDoc);
+              } else {
+                setAppUser(null);
+              }
+            }
+          }
+        } else {
+          setAppUser(null);
+        }
+        setLoading(false);
+      });
+    };
+
+    initAuth().catch(() => {
       setLoading(false);
     });
-    return unsub;
+
+    return () => {
+      active = false;
+      unsub();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!firebaseUser?.uid) return;
+
+    const userRef = doc(db, "users", firebaseUser.uid);
+
+    const writePresence = (isOnline: boolean) =>
+      setDoc(
+        userRef,
+        {
+          presence: {
+            isOnline,
+            lastActiveAt: new Date().toISOString(),
+            lastSeenAt: new Date().toISOString(),
+          },
+        },
+        { merge: true },
+      );
+
+    const markOnline = () => {
+      void writePresence(document.visibilityState === "visible");
+    };
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void writePresence(true);
+      }
+    }, 60_000);
+
+    const onVisibilityChange = () => {
+      void writePresence(document.visibilityState === "visible");
+    };
+
+    const onBeforeUnload = () => {
+      void writePresence(false);
+    };
+
+    markOnline();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("beforeunload", onBeforeUnload);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      void writePresence(false);
+    };
+  }, [firebaseUser?.uid]);
+
+  useEffect(() => {
+    if (!firebaseUser?.uid) return;
+
+    const ensureChatPublicKey = async () => {
+      const storageKey = `${CHAT_KEY_STORAGE_PREFIX}${firebaseUser.uid}`;
+      const raw = localStorage.getItem(storageKey);
+
+      if (raw) {
+        const parsed = JSON.parse(raw) as { publicKeyJwk?: JsonWebKey };
+        if (parsed.publicKeyJwk) {
+          await upsertUserChatPublicKey(firebaseUser.uid, parsed.publicKeyJwk);
+          return;
+        }
+      }
+
+      const generated = await generateChatKeyBundle();
+      localStorage.setItem(storageKey, JSON.stringify(generated));
+      await upsertUserChatPublicKey(firebaseUser.uid, generated.publicKeyJwk);
+    };
+
+    ensureChatPublicKey().catch(() => {
+      // Chat key provisioning should not block auth session.
+    });
+  }, [firebaseUser?.uid]);
 
   const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);

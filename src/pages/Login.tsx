@@ -21,18 +21,25 @@ const Login: React.FC = () => {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      setTimeout(() => {
-        const r = localStorage.getItem("rl_role_hint");
-        if (r === "admin") navigate("/admin");
-        else navigate("/collaborator-portal");
-      }, 400);
+      // Redirect is handled by role-driven useEffect after auth context resolves profile.
     } catch (err: any) {
-      setError(
-        err.code === "auth/invalid-credential" ||
-          err.code === "auth/wrong-password"
-          ? "Invalid email or password."
-          : "Login failed. Please try again.",
-      );
+      const code = String(err?.code || err?.message || "");
+      if (
+        code.includes("auth/invalid-credential") ||
+        code.includes("auth/wrong-password")
+      ) {
+        setError("Invalid email or password.");
+      } else if (code.includes("auth/too-many-requests")) {
+        setError(
+          "Too many failed attempts. Try again later or reset your password.",
+        );
+      } else if (code.includes("auth/user-disabled")) {
+        setError("This account is disabled. Contact admin.");
+      } else if (code.includes("auth/network-request-failed")) {
+        setError("Network error. Check your connection and try again.");
+      } else {
+        setError("Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

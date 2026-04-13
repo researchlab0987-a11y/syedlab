@@ -4,7 +4,11 @@ import AppIcon, { type AppIconName } from "../components/AppIcon";
 import CloudinaryUpload from "../components/CloudinaryUpload";
 import CollaboratorCard from "../components/CollaboratorCard";
 import { db } from "../firebase/config";
-import { useCollaborators, useSiteContent } from "../firebase/hooks";
+import {
+  useCollaborators,
+  usePublications,
+  useSiteContent,
+} from "../firebase/hooks";
 import type {
   CloudinaryUploadResult,
   CollaboratorProfile,
@@ -13,6 +17,7 @@ import type {
 
 const Collaborators: React.FC = () => {
   const { collaborators, loading } = useCollaborators();
+  const { ongoing, published } = usePublications();
   const { content } = useSiteContent();
   const [selected, setSelected] = useState<CollaboratorProfile | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -60,6 +65,61 @@ const Collaborators: React.FC = () => {
     setSearch("");
   };
 
+  const linkedPublicationsByUid = useMemo(() => {
+    const map = new Map<string, CollaboratorPublication[]>();
+    const allPublications = [...ongoing, ...published];
+
+    allPublications.forEach((pub) => {
+      const linkedUids = new Set<string>();
+      (pub.contributorUids ?? []).forEach((uid) => {
+        if (uid) linkedUids.add(uid);
+      });
+      (pub.authorEntries ?? []).forEach((author) => {
+        if (author.type === "linked" && author.uid) linkedUids.add(author.uid);
+      });
+
+      if (!linkedUids.size) return;
+
+      const normalized: CollaboratorPublication = {
+        id: pub.id,
+        title: pub.title,
+        journal: pub.journal,
+        year: pub.year,
+        url: pub.url,
+      };
+
+      linkedUids.forEach((uid) => {
+        const existing = map.get(uid) ?? [];
+        const alreadyExists = existing.some((item) => {
+          const sameId = item.id && item.id === normalized.id;
+          const sameSignature =
+            item.title.trim().toLowerCase() ===
+              normalized.title.trim().toLowerCase() &&
+            item.year === normalized.year &&
+            (item.url ?? "").trim().toLowerCase() ===
+              (normalized.url ?? "").trim().toLowerCase();
+          return sameId || sameSignature;
+        });
+        if (!alreadyExists) {
+          map.set(uid, [...existing, normalized]);
+        }
+      });
+    });
+
+    map.forEach((items, uid) => {
+      map.set(
+        uid,
+        [...items].sort((a, b) => (b.year ?? 0) - (a.year ?? 0)),
+      );
+    });
+
+    return map;
+  }, [ongoing, published]);
+
+  const selectedLinkedPublications = selected
+    ? (linkedPublicationsByUid.get(selected.uid) ?? [])
+    : [];
+
   if (loading)
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -74,7 +134,13 @@ const Collaborators: React.FC = () => {
     );
 
   if (selected)
-    return <CollaboratorDetail c={selected} onBack={() => setSelected(null)} />;
+    return (
+      <CollaboratorDetail
+        c={selected}
+        linkedPublications={selectedLinkedPublications}
+        onBack={() => setSelected(null)}
+      />
+    );
 
   const selectStyle: React.CSSProperties = {
     padding: "9px 36px 9px 14px",
@@ -278,9 +344,26 @@ const Collaborators: React.FC = () => {
 // ── Full profile detail ────────────────────────────────────────
 const CollaboratorDetail: React.FC<{
   c: CollaboratorProfile;
+  linkedPublications: CollaboratorPublication[];
   onBack: () => void;
-}> = ({ c, onBack }) => {
+}> = ({ c, linkedPublications, onBack }) => {
   const [imgErr, setImgErr] = useState(false);
+  const mergedPublications = useMemo(() => {
+    const all = [...(c.publications ?? []), ...linkedPublications];
+    const seen = new Set<string>();
+
+    const unique = all.filter((item) => {
+      const key = `${item.id ?? ""}::${item.title.trim().toLowerCase()}::${
+        item.year ?? 0
+      }::${(item.url ?? "").trim().toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return unique.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+  }, [c.publications, linkedPublications]);
+
   const initials = c.name
     .split(" ")
     .map((w) => w[0])
@@ -363,7 +446,7 @@ const CollaboratorDetail: React.FC<{
                 </div>
               </>
             )}
-            {c.publications?.length > 0 && (
+            {mergedPublications.length > 0 && (
               <>
                 <h3
                   className="font-bold text-base mb-4"
@@ -372,21 +455,30 @@ const CollaboratorDetail: React.FC<{
                   Publications
                 </h3>
                 <div className="flex flex-col gap-3">
-                  {c.publications.map((p) => (
+                  {mergedPublications.map((p) => (
                     <div
                       key={p.id}
                       className="bg-white rounded-xl p-4 shadow-sm border-l-4"
                       style={{ borderColor: "var(--color-secondary)" }}
                     >
-                      <a
-                        href={p.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-bold text-sm no-underline hover:underline"
-                        style={{ color: "var(--color-primary)" }}
-                      >
-                        {p.title}
-                      </a>
+                      {p.url ? (
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-bold text-sm no-underline hover:underline"
+                          style={{ color: "var(--color-primary)" }}
+                        >
+                          {p.title}
+                        </a>
+                      ) : (
+                        <p
+                          className="font-bold text-sm"
+                          style={{ color: "var(--color-primary)" }}
+                        >
+                          {p.title}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500 mt-1">
                         {p.journal} · {p.year}
                       </p>

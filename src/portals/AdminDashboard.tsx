@@ -1,15 +1,13 @@
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ContactMessages,
-  ManageAnnouncements,
-  ManageIdeas,
-} from "../admin/AdminSections";
+import { ContactMessages, ManageAnnouncements } from "../admin/AdminSections";
 import CollaboratorRequests from "../admin/CollaboratorRequests";
 import ContentEditor from "../admin/ContentEditor";
+import DeliveryStatusDashboard from "../admin/DeliveryStatusDashboard";
 import ManageCollaborators from "../admin/ManageCollaborators";
 import ManageGallery from "../admin/ManageGallery";
 import ManagePublications from "../admin/ManagePublications";
+import ManageResearchIdeas from "../admin/ManageResearchIdeas";
 import ThemeControl from "../admin/ThemeControl";
 import AppIcon, { type AppIconName } from "../components/AppIcon";
 import { useThemeContext } from "../context/ThemeContext";
@@ -23,6 +21,7 @@ import {
 import type { ContactMessage } from "../types";
 
 type Section =
+  | "overview"
   | "content"
   | "theme"
   | "requests"
@@ -30,11 +29,13 @@ type Section =
   | "publications"
   | "ideas"
   | "messages"
+  | "delivery"
   | "announcements"
   | "gallery";
 
 const SECTION_STORAGE_KEY = "rl_admin_section";
 const ALL_SECTIONS: Section[] = [
+  "overview",
   "content",
   "theme",
   "requests",
@@ -42,6 +43,7 @@ const ALL_SECTIONS: Section[] = [
   "publications",
   "ideas",
   "messages",
+  "delivery",
   "announcements",
   "gallery",
 ];
@@ -87,7 +89,7 @@ const CONTENT_TRACKED_KEYS = [
 ] as const;
 
 const AdminDashboard: React.FC = () => {
-  const [section, setSection] = useState<Section>("content");
+  const [section, setSection] = useState<Section>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -247,6 +249,7 @@ const AdminDashboard: React.FC = () => {
   ]);
 
   const navItems: NavItem[] = [
+    { id: "overview", label: "Overview", icon: "admin", group: "Site" },
     { id: "content", label: "Content Editor", icon: "content", group: "Site" },
     { id: "theme", label: "Theme Control", icon: "theme", group: "Site" },
     {
@@ -282,12 +285,19 @@ const AdminDashboard: React.FC = () => {
       group: "Inbox",
       badge: unreadMessages,
     },
+    {
+      id: "delivery",
+      label: "Delivery Status",
+      icon: "message",
+      group: "Inbox",
+    },
     { id: "gallery", label: "Gallery", icon: "gallery", group: "Media" },
   ];
 
   const groups = Array.from(new Set(navItems.map((i) => i.group)));
 
   const sectionDescriptions: Record<Section, string> = {
+    overview: "Track website readiness and jump into priority actions.",
     content: "Update headlines, page copy, and core website messaging.",
     theme: "Curate premium palettes, typography, and visual identity.",
     requests: "Review incoming collaborator applications and approvals.",
@@ -295,6 +305,7 @@ const AdminDashboard: React.FC = () => {
     publications: "Maintain ongoing and published research records.",
     ideas: "Moderate research ideas, comments, and curation quality.",
     messages: "Track outreach inbox, unread status, and responses.",
+    delivery: "Monitor chat email notification delivery outcomes.",
     announcements: "Publish key updates for homepage visibility.",
     gallery: "Organize lab media, visuals, and storytelling assets.",
   };
@@ -369,6 +380,8 @@ const AdminDashboard: React.FC = () => {
 
   const renderSection = () => {
     switch (section) {
+      case "overview":
+        return null;
       case "content":
         return <ContentEditor />;
       case "theme":
@@ -382,9 +395,11 @@ const AdminDashboard: React.FC = () => {
       case "publications":
         return <ManagePublications />;
       case "ideas":
-        return <ManageIdeas />;
+        return <ManageResearchIdeas />;
       case "messages":
         return <ContactMessages />;
+      case "delivery":
+        return <DeliveryStatusDashboard />;
       case "gallery":
         return <ManageGallery />;
       default:
@@ -558,6 +573,7 @@ const AdminDashboard: React.FC = () => {
               style={{
                 background:
                   "linear-gradient(135deg, var(--color-accent), #f97316)",
+                color: "#ffffff",
               }}
             >
               <AppIcon name="lab" size={18} />
@@ -573,9 +589,24 @@ const AdminDashboard: React.FC = () => {
                   className="w-10 h-10 rounded-xl flex items-center justify-center border-none cursor-pointer transition-all"
                   style={{
                     background: isActive
-                      ? "rgba(255,255,255,0.15)"
-                      : "transparent",
+                      ? "rgba(255,255,255,0.18)"
+                      : "rgba(255,255,255,0.04)",
+                    color: isActive ? "#ffffff" : "rgba(255,255,255,0.72)",
                     fontSize: 16,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background =
+                        "rgba(255,255,255,0.12)";
+                      e.currentTarget.style.color = "#ffffff";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background =
+                        "rgba(255,255,255,0.04)";
+                      e.currentTarget.style.color = "rgba(255,255,255,0.72)";
+                    }
                   }}
                 >
                   <AppIcon name={item.icon} size={16} />
@@ -907,152 +938,164 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-              {quickActions.map((action) => (
-                <button
-                  key={action.title}
-                  onClick={() => activateSection(action.id)}
-                  className="text-left p-3 rounded-xl border transition-all cursor-pointer"
-                  style={{
-                    borderColor,
-                    background: surfaceAltBg,
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-3 mb-1.5">
-                    <span
-                      className="inline-flex"
-                      style={{ color: "var(--color-primary)" }}
+            {section === "overview" && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+                  {quickActions.map((action) => (
+                    <button
+                      key={action.title}
+                      onClick={() => activateSection(action.id)}
+                      className="text-left p-3 rounded-xl border transition-all cursor-pointer"
+                      style={{
+                        borderColor,
+                        background: surfaceAltBg,
+                      }}
                     >
-                      <AppIcon name={action.icon} size={16} />
-                    </span>
-                    {action.highlight && (
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ background: action.highlight }}
-                      />
-                    )}
-                  </div>
-                  <p
-                    className="text-xs font-black"
-                    style={{ color: titleColor }}
-                  >
-                    {action.title}
-                  </p>
-                  <p className="text-[11px] mt-1" style={{ color: mutedColor }}>
-                    {action.note}
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            <div
-              className="rounded-2xl p-5 lg:p-6 mb-6"
-              style={{
-                background: surfaceBg,
-                boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
-                border: `1px solid ${panelBorderColor}`,
-              }}
-            >
-              <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-                <div>
-                  <p
-                    className="text-sm font-black"
-                    style={{
-                      color: "var(--color-primary)",
-                      letterSpacing: 0.2,
-                    }}
-                  >
-                    Website Progress Overview
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: mutedColor }}>
-                    Live completion status of site content and operations.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p
-                    className="text-2xl font-black leading-none"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {progress.overall}%
-                  </p>
-                  <p className="text-[11px] mt-1" style={{ color: mutedColor }}>
-                    overall readiness
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {progress.metrics.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => setSection(item.id)}
-                    className="text-left p-3 rounded-xl border transition-all cursor-pointer"
-                    style={{
-                      borderColor,
-                      background: surfaceAltBg,
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background =
-                        isDarkTheme ? "#1e293b" : "#f3f8ff";
-                      (e.currentTarget as HTMLElement).style.borderColor =
-                        isDarkTheme ? "#334155" : "#cbdcf4";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background =
-                        surfaceAltBg;
-                      (e.currentTarget as HTMLElement).style.borderColor =
-                        borderColor;
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <span
+                          className="inline-flex"
+                          style={{ color: "var(--color-primary)" }}
+                        >
+                          <AppIcon name={action.icon} size={16} />
+                        </span>
+                        {action.highlight && (
+                          <span
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: action.highlight }}
+                          />
+                        )}
+                      </div>
                       <p
                         className="text-xs font-black"
                         style={{ color: titleColor }}
                       >
-                        {item.label}
+                        {action.title}
                       </p>
-                      <span
-                        className="text-xs font-bold"
+                      <p
+                        className="text-[11px] mt-1"
                         style={{ color: mutedColor }}
                       >
-                        {item.stat}
-                      </span>
-                    </div>
-                    <div
-                      className="w-full h-2 rounded-full overflow-hidden"
-                      style={{ background: "#e8eef7" }}
-                    >
-                      <div
-                        className="h-full rounded-full transition-all"
+                        {action.note}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                <div
+                  className="rounded-2xl p-5 lg:p-6 mb-6"
+                  style={{
+                    background: surfaceBg,
+                    boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                    border: `1px solid ${panelBorderColor}`,
+                  }}
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+                    <div>
+                      <p
+                        className="text-sm font-black"
                         style={{
-                          width: `${item.percent}%`,
-                          background:
-                            "linear-gradient(90deg, var(--color-secondary), var(--color-accent))",
+                          color: "var(--color-primary)",
+                          letterSpacing: 0.2,
                         }}
-                      />
+                      >
+                        Website Progress Overview
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: mutedColor }}>
+                        Live completion status of site content and operations.
+                      </p>
                     </div>
-                    <p
-                      className="text-[11px] mt-2"
-                      style={{ color: mutedColor }}
-                    >
-                      {item.hint}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <div className="text-right">
+                      <p
+                        className="text-2xl font-black leading-none"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        {progress.overall}%
+                      </p>
+                      <p
+                        className="text-[11px] mt-1"
+                        style={{ color: mutedColor }}
+                      >
+                        overall readiness
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {progress.metrics.map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => setSection(item.id)}
+                        className="text-left p-3 rounded-xl border transition-all cursor-pointer"
+                        style={{
+                          borderColor,
+                          background: surfaceAltBg,
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.background =
+                            isDarkTheme ? "#1e293b" : "#f3f8ff";
+                          (e.currentTarget as HTMLElement).style.borderColor =
+                            isDarkTheme ? "#334155" : "#cbdcf4";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.background =
+                            surfaceAltBg;
+                          (e.currentTarget as HTMLElement).style.borderColor =
+                            borderColor;
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <p
+                            className="text-xs font-black"
+                            style={{ color: titleColor }}
+                          >
+                            {item.label}
+                          </p>
+                          <span
+                            className="text-xs font-bold"
+                            style={{ color: mutedColor }}
+                          >
+                            {item.stat}
+                          </span>
+                        </div>
+                        <div
+                          className="w-full h-2 rounded-full overflow-hidden"
+                          style={{ background: "#e8eef7" }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${item.percent}%`,
+                              background:
+                                "linear-gradient(90deg, var(--color-secondary), var(--color-accent))",
+                            }}
+                          />
+                        </div>
+                        <p
+                          className="text-[11px] mt-2"
+                          style={{ color: mutedColor }}
+                        >
+                          {item.hint}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Section content */}
-            <div
-              className="rounded-2xl p-5 lg:p-7"
-              style={{
-                background: surfaceBg,
-                boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
-                border: `1px solid ${panelBorderColor}`,
-              }}
-            >
-              {renderSection()}
-            </div>
+            {section !== "overview" && (
+              <div
+                className="rounded-2xl p-5 lg:p-7"
+                style={{
+                  background: surfaceBg,
+                  boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                  border: `1px solid ${panelBorderColor}`,
+                }}
+              >
+                {renderSection()}
+              </div>
+            )}
           </div>
         </main>
       </div>

@@ -237,13 +237,7 @@ const Gallery: React.FC = () => {
             </p>
           </div>
         ) : viewMode === "gallery" ? (
-          <div
-            className="transition-all duration-300 ease-out"
-            style={{
-              columns: "3 280px",
-              columnGap: "16px",
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch transition-all duration-300 ease-out">
             {gallery.map((item, idx) => (
               <GalleryCard key={item.id} item={item} priority={idx < 2} />
             ))}
@@ -279,21 +273,18 @@ const GalleryCard: React.FC<{
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`relative overflow-visible rounded-2xl border bg-white ${isClickable ? "cursor-pointer" : "cursor-default"}`}
+      className={`group relative h-full overflow-hidden rounded-2xl border bg-white ${isClickable ? "cursor-pointer" : "cursor-default"}`}
       style={{
-        marginBottom: 56,
-        breakInside: "avoid",
         borderColor: "#e5e7eb",
         boxShadow: "0 1px 8px rgba(15,23,42,0.05)",
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
       }}
     >
-      <div className="relative overflow-hidden rounded-2xl bg-white">
+      <div className="relative overflow-hidden bg-white aspect-[4/3]">
         {imgErr ? (
           <div
-            className="flex flex-col items-center justify-center text-gray-400 text-sm font-medium"
+            className="flex h-full flex-col items-center justify-center text-gray-400 text-sm font-medium"
             style={{
-              minHeight: 240,
               background: "#fafafa",
             }}
           >
@@ -307,27 +298,19 @@ const GalleryCard: React.FC<{
             onError={() => setImgErr(true)}
             loading={priority ? "eager" : "lazy"}
             decoding="async"
-            style={{
-              width: "100%",
-              display: "block",
-              minHeight: 240,
-              objectFit: "cover",
-              background: "#f8fafc",
-            }}
+            className="absolute inset-0 h-full w-full object-cover bg-slate-100 transition-transform duration-500 ease-out group-hover:scale-[1.02]"
           />
         )}
       </div>
 
       <div
-        className="absolute left-1/2 top-full mt-3 w-[min(18rem,calc(100%-1rem))] -translate-x-1/2 rounded-xl border px-3 py-3 shadow-lg"
+        className="absolute inset-x-3 bottom-3 rounded-xl border px-3 py-3 shadow-lg"
         style={{
           opacity: hovered ? 1 : 0,
-          transform: hovered
-            ? "translateX(-50%) translateY(0)"
-            : "translateX(-50%) translateY(-4px)",
+          transform: hovered ? "translateY(0)" : "translateY(6px)",
           transition: "opacity 0.22s ease, transform 0.22s ease",
-          background: "rgba(255,255,255,0.42)",
-          borderColor: "rgba(255,255,255,0.3)",
+          background: "rgba(255,255,255,0.74)",
+          borderColor: "rgba(255,255,255,0.5)",
           backdropFilter: "blur(8px)",
           pointerEvents: "none",
           zIndex: 5,
@@ -336,8 +319,8 @@ const GalleryCard: React.FC<{
         <div
           className="absolute -top-2 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t"
           style={{
-            background: "rgba(255,255,255,0.42)",
-            borderColor: "rgba(255,255,255,0.3)",
+            background: "rgba(255,255,255,0.74)",
+            borderColor: "rgba(255,255,255,0.5)",
           }}
         />
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-400 mb-1">
@@ -348,6 +331,9 @@ const GalleryCard: React.FC<{
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-gray-600 line-clamp-2">
           {item.description || "No description provided."}
+        </p>
+        <p className="mt-1.5 text-[10px] text-gray-500">
+          Uploaded by {item.uploaderName || "Lab team"}
         </p>
       </div>
     </div>
