@@ -139,7 +139,7 @@ const CollaboratorRequests: React.FC = () => {
         scholar: req.scholar ?? "",
         researchgate: req.researchgate ?? "",
         facebook: req.facebook ?? "",
-        publications: req.publications ?? [],
+        publications: [],
         isActive: true,
         order: maxOrder + 1,
         createdAt: new Date().toISOString(),
@@ -414,18 +414,6 @@ const CollaboratorRequests: React.FC = () => {
                           </a>
                         ))}
                     </div>
-                    {req.publications?.length > 0 && (
-                      <>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-4 mb-2">
-                          Publications ({req.publications.length})
-                        </p>
-                        {req.publications.map((p) => (
-                          <p key={p.id} className="text-xs text-gray-600 mb-1">
-                            • {p.title} — {p.journal} ({p.year})
-                          </p>
-                        ))}
-                      </>
-                    )}
                   </div>
                 </div>
               )}

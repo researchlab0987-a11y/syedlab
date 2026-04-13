@@ -18,6 +18,9 @@ export interface ChatConversation {
   participantNames?: Record<string, string>;
   lastMessagePreview?: string;
   lastMessageAt?: string;
+  unreadCounts?: Record<string, number>;
+  typingBy?: Record<string, string | null>;
+  pinnedMessageId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,4 +34,8 @@ export interface ChatMessage {
   createdAt: string;
   expiresAt: string;
   readAt?: string;
+  editedAt?: string;
+  deletedForEveryoneAt?: string;
+  replyToMessageId?: string;
+  reactions?: Record<string, string[]>;
 }

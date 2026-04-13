@@ -306,10 +306,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const raw = localStorage.getItem(storageKey);
 
       if (raw) {
-        const parsed = JSON.parse(raw) as { publicKeyJwk?: JsonWebKey };
-        if (parsed.publicKeyJwk) {
-          await upsertUserChatPublicKey(firebaseUser.uid, parsed.publicKeyJwk);
-          return;
+        try {
+          const parsed = JSON.parse(raw) as { publicKeyJwk?: JsonWebKey };
+          if (parsed.publicKeyJwk) {
+            await upsertUserChatPublicKey(
+              firebaseUser.uid,
+              parsed.publicKeyJwk,
+            );
+            return;
+          }
+        } catch {
+          localStorage.removeItem(storageKey);
         }
       }
 

@@ -129,8 +129,22 @@ service cloud.firestore {
           && request.resource.data.expiresAt is timestamp;
 
         allow update: if isChatParticipant(chatId)
-          && resource.data.recipientId == request.auth.uid
-          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['readAt']);
+          && (
+            (
+              resource.data.recipientId == request.auth.uid
+              && request.resource.data.diff(resource.data).changedKeys().hasOnly(['readAt', 'reactions'])
+            )
+            ||
+            (
+              resource.data.senderId == request.auth.uid
+              && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+                'encryptedByUser',
+                'editedAt',
+                'deletedForEveryoneAt',
+                'reactions'
+              ])
+            )
+          );
 
         allow delete: if false;
       }
@@ -145,8 +159,34 @@ service cloud.firestore {
     }
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin();
-      allow update: if isAdmin() || request.auth.uid == userId;
+      allow create: if isAdmin()
+        || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role == 'collaborator'
+          && request.resource.data.keys().hasOnly([
+            'email',
+            'name',
+            'role',
+            'createdAt',
+            'presence',
+            'chatPublicKeyJwk',
+            'chatKeyUpdatedAt'
+          ])
+        );
+      allow update: if isAdmin()
+        || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'email',
+            'name',
+            'presence',
+            'chatPublicKeyJwk',
+            'chatKeyUpdatedAt'
+          ])
+        );
     }
   }
 }

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "emoji-picker-react": "^4.5.16",
     "firebase": "^10.12.2",
     "lucide-react": "^1.8.0",
     "react": "^18.3.1",

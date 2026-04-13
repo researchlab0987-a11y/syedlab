@@ -550,15 +550,6 @@ const CollaboratorDetail: React.FC<{
   );
 };
 
-// ── Request Modal — NO password field ─────────────────────────
-const emptyPub = (): CollaboratorPublication => ({
-  id: Date.now().toString(),
-  title: "",
-  journal: "",
-  year: new Date().getFullYear(),
-  url: "",
-});
-
 const RequestModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [form, setForm] = useState({
     name: "",
@@ -574,9 +565,6 @@ const RequestModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     facebook: "",
     researchInterests: "",
   });
-  const [publications, setPublications] = useState<CollaboratorPublication[]>([
-    emptyPub(),
-  ]);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -586,15 +574,6 @@ const RequestModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((p) => ({ ...p, [k]: e.target.value })),
   });
-
-  const updatePub = (
-    i: number,
-    k: keyof CollaboratorPublication,
-    v: string | number,
-  ) =>
-    setPublications((ps) =>
-      ps.map((p, idx) => (idx === i ? { ...p, [k]: v } : p)),
-    );
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -610,7 +589,6 @@ const RequestModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
-        publications: publications.filter((p) => p.title),
         status: "pending",
         submittedAt: new Date().toISOString(),
       });
@@ -774,49 +752,6 @@ const RequestModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     placeholder="https://..."
                   />
                 </LabeledInput>
-              ))}
-            </div>
-
-            {/* Publications */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">
-                  Publications
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setPublications((p) => [...p, emptyPub()])}
-                  className="text-xs font-bold bg-transparent border-none cursor-pointer"
-                  style={{ color: "var(--color-secondary)" }}
-                >
-                  + Add
-                </button>
-              </div>
-              {publications.map((pub, i) => (
-                <div key={pub.id} className="grid grid-cols-4 gap-2 mb-2">
-                  <input
-                    className={`${inp} col-span-2`}
-                    style={inpStyle}
-                    placeholder="Title"
-                    value={pub.title}
-                    onChange={(e) => updatePub(i, "title", e.target.value)}
-                  />
-                  <input
-                    className={inp}
-                    style={inpStyle}
-                    placeholder="Journal"
-                    value={pub.journal}
-                    onChange={(e) => updatePub(i, "journal", e.target.value)}
-                  />
-                  <input
-                    className={inp}
-                    style={inpStyle}
-                    placeholder="Year"
-                    type="number"
-                    value={pub.year}
-                    onChange={(e) => updatePub(i, "year", +e.target.value)}
-                  />
-                </div>
               ))}
             </div>
 

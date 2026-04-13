@@ -14,10 +14,17 @@ export const usePrivateConversations = (uid?: string) => {
     }
 
     setLoading(true);
-    const unsub = subscribeConversations(uid, (items) => {
-      setConversations(items);
-      setLoading(false);
-    });
+    const unsub = subscribeConversations(
+      uid,
+      (items) => {
+        setConversations(items);
+        setLoading(false);
+      },
+      () => {
+        setConversations([]);
+        setLoading(false);
+      },
+    );
 
     return unsub;
   }, [uid]);
