@@ -181,6 +181,16 @@ aside {
   }
 }
 
+@media (max-width: 1023px) {
+  body.nav-mobile-top #app-layout-content {
+    padding-top: 58px;
+  }
+
+  body.nav-bottom-mobile #app-layout-content {
+    padding-bottom: 78px;
+  }
+}
+
 /* Global dark fallback for existing light utility/inline styles */
 :root[data-theme-mode="dark"] .bg-white {
   background-color: #111827;
