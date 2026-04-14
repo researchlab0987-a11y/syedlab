@@ -80,6 +80,17 @@ const Publications: React.FC = () => {
     (tab === "all" || tab === "ongoing" ? filteredOngoing.length : 0) +
     (tab === "all" || tab === "published" ? filteredPublished.length : 0);
 
+  const stats = [
+    { value: published.length, label: "Published" },
+    { value: ongoing.length, label: "Ongoing" },
+    {
+      value: [
+        ...new Set([...ongoing, ...published].flatMap((p) => p.tags ?? [])),
+      ].length,
+      label: "Topics",
+    },
+  ];
+
   if (loading)
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -130,81 +141,113 @@ const Publications: React.FC = () => {
     <div>
       {/* Hero */}
       <section
-        className="relative overflow-hidden py-20 text-center px-4"
+        className="relative overflow-hidden py-24 text-center px-4"
         style={{ background: "var(--color-primary)" }}
       >
+        {/* Dot pattern */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+        {/* Accent glow */}
+        <div
+          className="absolute bottom-0 right-0 w-96 h-96 rounded-full opacity-20 blur-3xl"
+          style={{
+            background: "var(--color-accent)",
+            transform: "translate(30%, 40%)",
+          }}
+        />
+
         {content["publications.bannerUrl"] && (
           <img
             src={content["publications.bannerUrl"]}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: "brightness(0.45)" }}
+            style={{ filter: "brightness(0.35)" }}
           />
         )}
         <div className="relative z-10">
-          <div
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-          <div className="relative z-10">
+          <div className="max-w-4xl mx-auto">
+            <div
+              className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border"
+              style={{
+                borderColor: "rgba(255,255,255,0.2)",
+                background: "rgba(255,255,255,0.07)",
+              }}
+            >
+              <div
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ background: "var(--color-accent)" }}
+              />
+              <span
+                className="text-xs font-bold tracking-widest uppercase"
+                style={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                Rahman Research Lab
+              </span>
+            </div>
             <h1
               className="font-black text-white mb-4"
               style={{
-                fontSize: "clamp(2rem,4vw,3rem)",
+                fontSize: "clamp(2.2rem, 4.5vw, 3.5rem)",
                 fontFamily: "var(--font-heading)",
+                letterSpacing: "-1px",
               }}
             >
               {content["publications.pageTitle"] ?? "Publications"}
             </h1>
+            <div
+              className="mx-auto mb-5 h-1 w-16 rounded-full"
+              style={{ background: "var(--color-accent)" }}
+            />
             <p
-              className="text-base max-w-xl mx-auto mb-6"
+              className="text-base max-w-2xl mx-auto leading-relaxed"
               style={{ color: "rgba(255,255,255,0.72)" }}
             >
               {content["publications.pageSubtitle"] ?? ""}
             </p>
-            {/* Stats */}
-            <div className="flex items-center justify-center gap-8">
-              {[
-                { value: published.length, label: "Published" },
-                { value: ongoing.length, label: "Ongoing" },
-                {
-                  value: [
-                    ...new Set(
-                      [...ongoing, ...published].flatMap((p) => p.tags ?? []),
-                    ),
-                  ].length,
-                  label: "Topics",
-                },
-              ].map((s, i, arr) => (
-                <React.Fragment key={s.label}>
-                  <div className="text-center">
-                    <div
-                      className="text-2xl font-black"
-                      style={{ color: "var(--color-accent)" }}
-                    >
-                      {s.value}
-                    </div>
-                    <div
-                      className="text-xs"
-                      style={{ color: "rgba(255,255,255,0.6)" }}
-                    >
-                      {s.label}
-                    </div>
-                  </div>
-                  {i < arr.length - 1 && (
-                    <div
-                      className="w-px h-8"
-                      style={{ background: "rgba(255,255,255,0.2)" }}
-                    />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
           </div>
+        </div>
+      </section>
+
+      {/* Stats Strip */}
+      <section style={{ background: "var(--color-primary)" }}>
+        <div
+          className="max-w-3xl mx-auto px-4 grid grid-cols-3"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className="text-center py-6 px-4"
+              style={{
+                borderRight:
+                  i < stats.length - 1
+                    ? "1px solid rgba(255,255,255,0.1)"
+                    : "none",
+              }}
+            >
+              <div
+                className="text-3xl font-black leading-none"
+                style={{
+                  color: "var(--color-accent)",
+                  fontFamily: "var(--font-heading)",
+                }}
+              >
+                {s.value}
+              </div>
+              <div
+                className="text-xs mt-1.5 font-medium"
+                style={{ color: "rgba(255,255,255,0.55)" }}
+              >
+                {s.label}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

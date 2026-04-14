@@ -12,12 +12,14 @@ import {
   addReactionToMessage,
   deleteMessageForEveryoneBySender,
   editMessageBySender,
+  getUserChatKeyBundle,
   getUserChatPublicKey,
   markConversationRead,
   removeReactionFromMessage,
   sendEncryptedMessage,
   setPinnedConversationMessage,
   setTypingStatus,
+  upsertUserChatKeyBundle,
   upsertUserChatPublicKey,
 } from "../service";
 import type { ChatConversation, ChatKeyBundle } from "../types";
@@ -61,9 +63,7 @@ const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ appUser }) => {
   const activeTypingConversationRef = useRef<string | undefined>(undefined);
   const typingDebounceRef = useRef<number | undefined>(undefined);
 
-  const KEY_STORAGE_PREFIX = "rl_chat_keybundle_v1_";
   const DELETE_FOR_ME_PREFIX = "rl_chat_deleted_for_me_v1_";
-
   const RECENTS_STORAGE_PREFIX = "rl_chat_recent_ids_v1_";
 
   useEffect(() => {
@@ -84,26 +84,33 @@ const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ appUser }) => {
     if (!appUser?.uid) return;
 
     const load = async () => {
-      const storageKey = `${KEY_STORAGE_PREFIX}${appUser.uid}`;
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw) as ChatKeyBundle;
-          setKeyBundle(parsed);
-          await upsertUserChatPublicKey(appUser.uid, parsed.publicKeyJwk);
-          return;
-        } catch {
-          localStorage.removeItem(storageKey);
-        }
+      // Try to fetch existing key bundle from Firestore
+      const existingBundle = await getUserChatKeyBundle(appUser.uid);
+
+      if (existingBundle) {
+        console.log(
+          `[Chat] Loaded key bundle from Firestore for user ${appUser.uid}`,
+        );
+        setKeyBundle(existingBundle);
+        // Ensure public key is available for others to encrypt
+        await upsertUserChatPublicKey(appUser.uid, existingBundle.publicKeyJwk);
+        return;
       }
 
+      // If no existing bundle, generate a new one
+      console.log(`[Chat] Generating new key bundle for user ${appUser.uid}`);
       const generated = await generateChatKeyBundle();
-      localStorage.setItem(storageKey, JSON.stringify(generated));
-      setKeyBundle(generated);
+
+      // Store the complete bundle in Firestore for cross-device access
+      await upsertUserChatKeyBundle(appUser.uid, generated);
+      // Ensure public key is available for others to encrypt
       await upsertUserChatPublicKey(appUser.uid, generated.publicKeyJwk);
+      setKeyBundle(generated);
     };
 
-    load().catch(() => {});
+    load().catch((error) => {
+      console.error("[Chat] Error loading/generating chat key bundle:", error);
+    });
   }, [appUser?.uid]);
 
   useEffect(() => {
@@ -183,7 +190,12 @@ const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ appUser }) => {
               keyBundle.privateKeyJwk,
             );
             return [message.id, plain] as const;
-          } catch {
+          } catch (error) {
+            console.warn(
+              `[Chat] Failed to decrypt message ${message.id}. Reason: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }. This may indicate the encryption key was regenerated or your browser storage was cleared. Old messages encrypted with previous keys cannot be decrypted.`,
+            );
             return [message.id, "[Unable to decrypt]"] as const;
           }
         }),
@@ -192,7 +204,8 @@ const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ appUser }) => {
       setDecryptedTextById(Object.fromEntries(entries));
     };
 
-    decodeAll().catch(() => {
+    decodeAll().catch((error) => {
+      console.error("[Chat] Error decoding messages:", error);
       setDecryptedTextById({});
     });
   }, [appUser?.uid, keyBundle, messages]);

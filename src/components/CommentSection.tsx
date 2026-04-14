@@ -7,6 +7,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/config";
 import { useComments } from "../firebase/hooks";
@@ -200,11 +201,15 @@ const CommentSection: React.FC<Props> = ({ ideaId }) => {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4" style={{ overflow: "visible" }}>
           {topLevel.map((comment, idx) => (
             <div
               key={comment.id}
-              style={{ animation: `commentIn 0.3s ease ${idx * 0.05}s both` }}
+              style={{
+                animation: `commentIn 0.3s ease ${idx * 0.05}s both`,
+                overflow: "visible",
+                position: "relative",
+              }}
             >
               <CommentThreadNode
                 comment={comment}
@@ -262,33 +267,34 @@ const CommentInput: React.FC<{
 
   return (
     <div
-      className="rounded-2xl overflow-hidden mb-4"
+      className="rounded-2xl overflow-hidden mb-5"
       style={{
-        border: `1px solid ${isReply ? "var(--color-secondary)33" : "#e8eef4"}`,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+        border: `1px solid ${isReply ? "var(--color-secondary)2b" : "#e8eef4"}`,
+        boxShadow: "0 1px 6px rgba(15,23,42,0.04)",
+        background: "white",
       }}
     >
-      <div
-        className="px-4 py-3 flex items-center gap-3"
-        style={{ background: "#f8fafc", borderBottom: "1px solid #e8eef4" }}
-      >
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0"
-          style={{
-            background:
-              "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
-          }}
-        >
-          {appUser?.name?.charAt(0).toUpperCase() ?? "?"}
+      <div className="px-4 py-4 sm:px-5 sm:py-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black text-xs flex-shrink-0"
+            style={{
+              background:
+                "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+            }}
+          >
+            {appUser?.name?.charAt(0).toUpperCase() ?? "?"}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-700 leading-none">
+              {appUser?.name ?? "You"}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {isReply ? "Write a reply" : "Write a comment"}
+            </p>
+          </div>
         </div>
-        <span className="text-sm font-semibold text-gray-600">
-          {appUser?.name ?? "You"} ·{" "}
-          <span className="text-gray-400 font-normal">
-            {isReply ? "Write a reply" : "Write a comment"}
-          </span>
-        </span>
-      </div>
-      <div className="bg-white px-4 py-3">
+
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -296,60 +302,60 @@ const CommentInput: React.FC<{
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handle();
           }}
           placeholder={placeholder}
-          rows={isReply ? 2 : 3}
+          rows={isReply ? 2 : 4}
           autoFocus={autoFocus}
-          className="w-full text-sm resize-none outline-none text-gray-700"
+          className="w-full text-sm resize-none outline-none text-gray-700 rounded-xl"
           style={{
-            border: "none",
+            border: "1px solid #e2e8f0",
+            padding: "14px 14px",
+            minHeight: isReply ? 88 : 124,
             fontFamily: "var(--font-body)",
-            lineHeight: 1.7,
+            lineHeight: 1.65,
+            background: "#fbfdff",
           }}
         />
-      </div>
-      <div
-        className="px-4 py-3 flex items-center justify-between"
-        style={{ background: "#f8fafc", borderTop: "1px solid #e8eef4" }}
-      >
-        <span className="text-xs text-gray-400">Ctrl + Enter to post</span>
-        <div className="flex gap-2">
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="text-xs font-bold px-4 py-1.5 rounded-lg border-none cursor-pointer"
-              style={{ background: "#f1f5f9", color: "#64748b" }}
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            onClick={handle}
-            disabled={loading || !text.trim()}
-            className="text-xs font-bold px-4 py-1.5 rounded-xl text-white disabled:opacity-50 transition-all"
-            style={{
-              background: isReply
-                ? "var(--color-secondary)"
-                : "var(--color-primary)",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            {loading ? (
-              <span className="flex items-center gap-1.5">
-                <span
-                  className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin"
-                  style={{
-                    borderColor: "white",
-                    borderTopColor: "transparent",
-                  }}
-                />
-                Posting...
-              </span>
-            ) : isReply ? (
-              "↩ Reply"
-            ) : (
-              "Post"
+        <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-xs text-gray-400">Ctrl + Enter to post</span>
+          <div className="flex gap-2 ml-auto">
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                className="text-xs font-bold px-4 py-1.5 rounded-lg border-none cursor-pointer"
+                style={{ background: "#f1f5f9", color: "#64748b" }}
+              >
+                Cancel
+              </button>
             )}
-          </button>
+            <button
+              onClick={handle}
+              disabled={loading || !text.trim()}
+              className="text-xs font-bold px-4 py-1.5 rounded-xl text-white disabled:opacity-50 transition-all"
+              style={{
+                background: isReply
+                  ? "var(--color-secondary)"
+                  : "var(--color-primary)",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              {loading ? (
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className="w-3 h-3 rounded-full border-2 border-t-transparent animate-spin"
+                    style={{
+                      borderColor: "white",
+                      borderTopColor: "transparent",
+                    }}
+                  />
+                  Posting...
+                </span>
+              ) : isReply ? (
+                "↩ Reply"
+              ) : (
+                "Post"
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -389,7 +395,10 @@ const CommentThreadNode: React.FC<{
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.content);
   const [savingEdit, setSavingEdit] = useState(false);
+  const actionAnchorRef = useRef<HTMLDivElement>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const actionButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   const allChildren = getChildren(comment.id);
   const children = allChildren.filter((child) => !lineage.includes(child.id));
@@ -413,7 +422,9 @@ const CommentThreadNode: React.FC<{
     const onMouseDown = (event: MouseEvent) => {
       if (!actionMenuRef.current) return;
       if (!actionMenuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
+        if (!actionButtonRef.current?.contains(event.target as Node)) {
+          setMenuOpen(false);
+        }
       }
     };
 
@@ -440,6 +451,8 @@ const CommentThreadNode: React.FC<{
       onMouseLeave={() => setHovered(false)}
       style={{
         paddingLeft: leftPadding,
+        overflow: "visible",
+        position: "relative",
       }}
     >
       <div className="flex items-start gap-3">
@@ -566,9 +579,37 @@ const CommentThreadNode: React.FC<{
               </button>
             )}
             {(canEdit(comment) || canDelete(comment)) && (
-              <div className="ml-auto relative" ref={actionMenuRef}>
+              <div className="ml-auto relative" ref={actionAnchorRef}>
                 <button
-                  onClick={() => setMenuOpen((v) => !v)}
+                  ref={actionButtonRef}
+                  onClick={() => {
+                    if (!menuOpen && actionButtonRef.current) {
+                      const rect =
+                        actionButtonRef.current.getBoundingClientRect();
+                      const menuWidth = 140;
+                      const menuHeight = 92;
+                      const gap = 8;
+                      const spaceBelow = window.innerHeight - rect.bottom;
+                      const spaceAbove = rect.top;
+                      const opensUp =
+                        spaceBelow < menuHeight + gap &&
+                        spaceAbove > menuHeight + gap;
+
+                      const top = opensUp
+                        ? rect.top - menuHeight - gap
+                        : rect.bottom + gap;
+                      const left = Math.min(
+                        Math.max(8, rect.right - menuWidth),
+                        window.innerWidth - menuWidth - 8,
+                      );
+
+                      setMenuPosition({
+                        top,
+                        left,
+                      });
+                    }
+                    setMenuOpen((v) => !v);
+                  }}
                   aria-label="Comment actions"
                   className="w-7 h-7 rounded-full border-none cursor-pointer flex items-center justify-center"
                   style={{
@@ -578,44 +619,6 @@ const CommentThreadNode: React.FC<{
                 >
                   <AppIcon name="more" size={14} />
                 </button>
-
-                {menuOpen && (
-                  <div
-                    className="absolute right-0 mt-1 rounded-xl overflow-hidden"
-                    style={{
-                      minWidth: 140,
-                      background: "white",
-                      border: "1px solid #e2e8f0",
-                      boxShadow: "0 10px 28px rgba(15,23,42,0.16)",
-                      zIndex: 20,
-                    }}
-                  >
-                    {canEdit(comment) && (
-                      <button
-                        onClick={() => {
-                          setIsEditing(true);
-                          setMenuOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs font-semibold border-none cursor-pointer"
-                        style={{ background: "white", color: "#0f172a" }}
-                      >
-                        Edit comment
-                      </button>
-                    )}
-                    {canDelete(comment) && (
-                      <button
-                        onClick={() => {
-                          setMenuOpen(false);
-                          onDelete(comment);
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs font-semibold border-none cursor-pointer"
-                        style={{ background: "white", color: "#b91c1c" }}
-                      >
-                        Delete comment
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -642,7 +645,11 @@ const CommentThreadNode: React.FC<{
           {showReplies && children.length > 0 && (
             <div
               className="mt-3 flex flex-col gap-3 pl-3"
-              style={{ borderLeft: "2px solid #dbe7f3" }}
+              style={{
+                borderLeft: "2px solid #dbe7f3",
+                overflow: "visible",
+                position: "relative",
+              }}
             >
               {children.map((reply, idx) => (
                 <div
@@ -668,6 +675,51 @@ const CommentThreadNode: React.FC<{
           )}
         </div>
       </div>
+
+      {menuOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={actionMenuRef}
+              className="rounded-xl overflow-hidden"
+              style={{
+                position: "fixed",
+                top: `${menuPosition.top}px`,
+                left: `${menuPosition.left}px`,
+                minWidth: 140,
+                background: "white",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 10px 28px rgba(15,23,42,0.16)",
+                zIndex: 9999,
+              }}
+            >
+              {canEdit(comment) && (
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold border-none cursor-pointer"
+                  style={{ background: "white", color: "#0f172a" }}
+                >
+                  Edit comment
+                </button>
+              )}
+              {canDelete(comment) && (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete(comment);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-semibold border-none cursor-pointer"
+                  style={{ background: "white", color: "#b91c1c" }}
+                >
+                  Delete comment
+                </button>
+              )}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 };

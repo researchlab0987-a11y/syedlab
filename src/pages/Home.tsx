@@ -357,32 +357,61 @@ const Home: React.FC = () => {
                   {/* Social icons row */}
                   <div className="flex items-center justify-center gap-2 mb-4">
                     {[
-                      { href: labHead.linkedin, label: "in", color: "#0a66c2" },
-                      { href: labHead.scholar, label: "GS", color: "#4285f4" },
-                      { href: labHead.orcid, label: "ID", color: "#a6ce39" },
+                      {
+                        href: labHead.linkedin,
+                        icon: "linkedin" as AppIconName,
+                        label: "LinkedIn",
+                        color: "#ffffff",
+                      },
+                      {
+                        href: labHead.scholar,
+                        icon: "scholar" as AppIconName,
+                        label: "Google Scholar",
+                        color: "#ffffff",
+                      },
+                      {
+                        href: labHead.orcid,
+                        icon: "orcid" as AppIconName,
+                        label: "ORCID",
+                        color: "#ffffff",
+                      },
                       {
                         href: labHead.researchgate,
-                        label: "RG",
-                        color: "#00d2d3",
+                        icon: "researchgate" as AppIconName,
+                        label: "ResearchGate",
+                        color: "#ffffff",
                       },
                     ]
                       .filter((l) => l.href)
                       .map((l) => (
                         <a
-                          key={l.label}
+                          key={l.icon}
                           href={l.href}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="no-underline font-black text-white rounded-lg flex items-center justify-center"
+                          className="no-underline font-black text-white rounded-lg flex items-center justify-center transition-all"
+                          aria-label={l.label}
+                          title={l.label}
                           style={{
                             background: l.color,
                             width: 30,
                             height: 30,
-                            fontSize: 11,
+                          }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.transform =
+                              "translateY(-2px)";
+                            (e.currentTarget as HTMLElement).style.boxShadow =
+                              "0 4px 12px rgba(0,0,0,0.2)";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLElement).style.transform =
+                              "translateY(0)";
+                            (e.currentTarget as HTMLElement).style.boxShadow =
+                              "none";
                           }}
                         >
-                          {l.label}
+                          <AppIcon name={l.icon} size={13} />
                         </a>
                       ))}
                   </div>
@@ -1290,10 +1319,10 @@ const LabHeadModal: React.FC<{
     : [];
 
   const links = [
-    { href: labHead.linkedin, label: "LinkedIn", color: "#0a66c2" },
-    { href: labHead.scholar, label: "Google Scholar", color: "#4285f4" },
-    { href: labHead.orcid, label: "ORCID", color: "#a6ce39" },
-    { href: labHead.researchgate, label: "ResearchGate", color: "#00d2d3" },
+    { href: labHead.linkedin, label: "LinkedIn", color: "#ffffff" },
+    { href: labHead.scholar, label: "Google Scholar", color: "#ffffff" },
+    { href: labHead.orcid, label: "ORCID", color: "#ffffff" },
+    { href: labHead.researchgate, label: "ResearchGate", color: "#ffffff" },
   ].filter((l) => l.href);
 
   const modalSurface = isDarkTheme ? "#0f172a" : "#ffffff";

@@ -8,6 +8,23 @@ const Contact: React.FC = () => {
   const { content, loading } = useSiteContent();
   const { theme } = useThemeContext();
 
+  const hexToRgb = (hex: string) => {
+    const clean = (hex ?? "").replace("#", "").trim();
+    if (clean.length !== 6) return { r: 0, g: 0, b: 0 };
+    return {
+      r: Number.parseInt(clean.slice(0, 2), 16),
+      g: Number.parseInt(clean.slice(2, 4), 16),
+      b: Number.parseInt(clean.slice(4, 6), 16),
+    };
+  };
+
+  const withAlpha = (hex: string, alpha: number, fallback = hex) => {
+    const rgb = hexToRgb(hex);
+    return rgb.r === 0 && rgb.g === 0 && rgb.b === 0 && hex !== "#000000"
+      ? fallback
+      : `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+  };
+
   const isDarkTheme = React.useMemo(() => {
     const clean = (theme.backgroundColor ?? "").replace("#", "").trim();
     if (clean.length !== 6) return false;
@@ -18,11 +35,44 @@ const Contact: React.FC = () => {
     return luminance < 140;
   }, [theme.backgroundColor]);
 
-  const headingText = isDarkTheme ? "#e5e7eb" : "var(--color-primary)";
-  const bodyText = isDarkTheme ? "#cbd5e1" : "#374151";
-  const mutedText = isDarkTheme ? "#94a3b8" : "#9ca3af";
-  const cardBg = isDarkTheme ? "rgba(15,23,42,0.7)" : "#ffffff";
-  const cardBorder = isDarkTheme ? "rgba(148,163,184,0.22)" : "#e5e7eb";
+  const headingText = isDarkTheme
+    ? withAlpha(theme.backgroundColor!, 1, "var(--color-primary)")
+    : "var(--color-primary)";
+  const bodyText = isDarkTheme
+    ? withAlpha(theme.primaryColor!, 0.8, "#cbd5e1")
+    : withAlpha(theme.primaryColor!, 0.7, "#374151");
+  const mutedText = isDarkTheme
+    ? withAlpha(theme.primaryColor!, 0.6, "#94a3b8")
+    : withAlpha(theme.primaryColor!, 0.6, "#9ca3af");
+  const cardBg = isDarkTheme
+    ? withAlpha(theme.backgroundColor!, 0.7, "rgba(15,23,42,0.7)")
+    : "var(--color-bg)";
+  const cardBorder = isDarkTheme
+    ? withAlpha(theme.primaryColor!, 0.22, "rgba(148,163,184,0.22)")
+    : withAlpha(theme.primaryColor!, 0.1, "#e5e7eb");
+
+  const neuroBgLight = withAlpha(theme.primaryColor!, 0.08, "#e7edf6");
+  const neuroBgDark = withAlpha(theme.backgroundColor!, 1, "#182438");
+  const neuroBg = isDarkTheme ? neuroBgDark : neuroBgLight;
+
+  const shadowLight = `10px 10px 20px ${withAlpha(theme.primaryColor!, 0.15, "#c5cdd7")}, -10px -10px 20px ${withAlpha(theme.backgroundColor!, 0.95, "#f5fbff")}`;
+  const shadowDark = `10px 10px 20px ${withAlpha(theme.backgroundColor!, 0.45, "rgba(5,10,20,0.45)")}, -10px -10px 20px ${withAlpha(theme.primaryColor!, 0.18, "rgba(51,65,85,0.18)")}`;
+  const neuroRaised = isDarkTheme ? shadowDark : shadowLight;
+  const addressValue = String(content["contact.address"] ?? "").trim();
+  
+  // Extract URL from iframe HTML if admin accidentally pastes full code
+  const rawMapEmbed = String(content["contact.mapEmbed"] ?? "").trim();
+  const mapEmbedUrl = (() => {
+    if (rawMapEmbed.includes("<iframe")) {
+      const match = rawMapEmbed.match(/src=["']([^"']+)["']/i);
+      return match?.[1]?.trim() ?? "";
+    }
+    return rawMapEmbed;
+  })();
+  
+  const mapSearchUrl = addressValue
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressValue)}`
+    : "";
 
   if (loading)
     return (
@@ -64,7 +114,13 @@ const Contact: React.FC = () => {
           </h1>
           <p
             className="text-base max-w-xl mx-auto"
-            style={{ color: "rgba(255,255,255,0.75)" }}
+            style={{
+              color: withAlpha(
+                theme.backgroundColor!,
+                0.75,
+                "rgba(255,255,255,0.75)",
+              ),
+            }}
           >
             {content["contact.pageSubtitle"] ?? "We'd love to hear from you."}
           </p>
@@ -88,7 +144,7 @@ const Contact: React.FC = () => {
             {
               icon: "location" as AppIconName,
               label: "Address",
-              value: content["contact.address"],
+              value: addressValue,
             },
             {
               icon: "contact" as AppIconName,
@@ -140,34 +196,106 @@ const Contact: React.FC = () => {
               </div>
             ))}
 
-          {/* Map embed */}
-          {content["contact.mapEmbed"] && (
-            <div
-              className="rounded-xl overflow-hidden border mt-2"
-              style={{ borderColor: cardBorder }}
-            >
-              <iframe
-                src={content["contact.mapEmbed"]}
-                width="100%"
-                height="220"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                title="Lab location map"
-              />
+          <div
+            className="rounded-2xl p-4 border mt-2"
+            style={{ background: cardBg, borderColor: cardBorder }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg"
+                style={{
+                  background: "var(--color-primary)",
+                  color: "white",
+                }}
+              >
+                <AppIcon name="location" size={15} />
+              </span>
+              <div>
+                <p
+                  className="text-xs font-black uppercase tracking-[0.15em]"
+                  style={{ color: mutedText }}
+                >
+                  Location
+                </p>
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: bodyText }}
+                >
+                  Find us on the map
+                </p>
+              </div>
             </div>
-          )}
+
+            {mapEmbedUrl ? (
+              <div
+                className="rounded-xl overflow-hidden border"
+                style={{ borderColor: cardBorder }}
+              >
+                <iframe
+                  src={mapEmbedUrl}
+                  width="100%"
+                  height="320"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  title="Lab location map"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm" style={{ color: mutedText }}>
+                  Map link is not available yet. Please use the address above.
+                </p>
+                {mapSearchUrl && (
+                  <a
+                    href={mapSearchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 text-sm font-semibold no-underline hover:underline"
+                    style={{ color: "var(--color-secondary)" }}
+                  >
+                    <AppIcon name="location" size={14} />
+                    Open in Google Maps
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Contact Form */}
         <div className="lg:col-span-3">
           <div
-            className="rounded-2xl p-8 shadow-md border"
+            className="rounded-[28px] p-8 border"
             style={{
-              background: cardBg,
+              background: neuroBg,
               borderColor: cardBorder,
+              boxShadow: neuroRaised,
             }}
           >
+            <div className="flex items-center gap-3 mb-3">
+              <span
+                className="inline-flex items-center justify-center w-11 h-11 rounded-2xl"
+                style={{ background: neuroBg, boxShadow: neuroRaised }}
+              >
+                <AppIcon
+                  name="message"
+                  size={18}
+                  style={{ color: headingText }}
+                />
+              </span>
+              <div>
+                <p
+                  className="text-[11px] font-black uppercase tracking-[0.15em]"
+                  style={{ color: mutedText }}
+                >
+                  Direct Contact
+                </p>
+                <p className="text-sm" style={{ color: bodyText }}>
+                  Send your query and we will respond soon.
+                </p>
+              </div>
+            </div>
             <h2
               className="font-black text-xl mb-6"
               style={{
@@ -177,7 +305,9 @@ const Contact: React.FC = () => {
             >
               {content["contact.formTitle"] ?? "Send a Message"}
             </h2>
-            <ContactForm />
+            <div className="contact-neuro-form">
+              <ContactForm />
+            </div>
           </div>
         </div>
       </div>

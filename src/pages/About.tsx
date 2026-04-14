@@ -184,84 +184,89 @@ const About: React.FC = () => {
         </div>
       </section>
 
-      {/* ── Main Sections ── */}
-      <div className="max-w-5xl mx-auto px-4 py-20">
-        {sections.map((s, idx) => {
-          if (!content[s.titleKey]) return null;
-          const isEven = idx % 2 === 1;
-          return (
-            <div
-              key={s.titleKey}
-              className="mb-6 rounded-3xl overflow-hidden"
-              style={{
-                background: isEven ? "white" : "#f8fafc",
-                border: "1px solid #e8eef4",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.05)",
-              }}
-            >
+      {/* ── Main Sections (separated) ── */}
+      {sections.map((s, idx) => {
+        if (!content[s.titleKey]) return null;
+        const isEven = idx % 2 === 1;
+        return (
+          <section
+            key={s.titleKey}
+            className="px-4 py-10 md:py-12"
+            style={{ background: isEven ? "#ffffff" : "#f8fafc" }}
+          >
+            <div className="max-w-5xl mx-auto">
               <div
-                className={`flex flex-col md:flex-row ${isEven ? "md:flex-row-reverse" : ""}`}
+                className="rounded-3xl overflow-hidden"
+                style={{
+                  background: isEven ? "#f8fafc" : "white",
+                  border: "1px solid #e8eef4",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.05)",
+                }}
               >
-                {/* Number / Icon panel */}
                 <div
-                  className="flex flex-col items-center justify-center px-10 py-12 flex-shrink-0"
-                  style={{
-                    background: `linear-gradient(160deg, ${s.accent}18 0%, ${s.accent}08 100%)`,
-                    minWidth: 180,
-                    borderRight: !isEven ? `1px solid ${s.accent}20` : "none",
-                    borderLeft: isEven ? `1px solid ${s.accent}20` : "none",
-                  }}
+                  className={`flex flex-col md:flex-row ${isEven ? "md:flex-row-reverse" : ""}`}
                 >
+                  {/* Number / Icon panel */}
                   <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4"
+                    className="flex flex-col items-center justify-center px-10 py-12 flex-shrink-0"
                     style={{
-                      background: `${s.accent}15`,
-                      border: `2px solid ${s.accent}30`,
+                      background: `linear-gradient(160deg, ${s.accent}18 0%, ${s.accent}08 100%)`,
+                      minWidth: 180,
+                      borderRight: !isEven ? `1px solid ${s.accent}20` : "none",
+                      borderLeft: isEven ? `1px solid ${s.accent}20` : "none",
                     }}
                   >
-                    <AppIcon name={s.icon} size={28} />
-                  </div>
-                  <span
-                    className="font-black text-5xl leading-none"
-                    style={{
-                      color: `${s.accent}25`,
-                      fontFamily: "var(--font-heading)",
-                      letterSpacing: "-3px",
-                    }}
-                  >
-                    {s.number}
-                  </span>
-                </div>
-
-                {/* Text content */}
-                <div className="flex-1 px-8 py-10">
-                  <div className="flex items-center gap-3 mb-4">
                     <div
-                      className="w-1 h-8 rounded-full flex-shrink-0"
-                      style={{ background: s.accent }}
-                    />
-                    <h2
-                      className="font-black text-2xl"
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-4"
                       style={{
-                        color: "var(--color-primary)",
-                        fontFamily: "var(--font-heading)",
+                        background: `${s.accent}15`,
+                        border: `2px solid ${s.accent}30`,
                       }}
                     >
-                      {content[s.titleKey]}
-                    </h2>
+                      <AppIcon name={s.icon} size={28} />
+                    </div>
+                    <span
+                      className="font-black text-5xl leading-none"
+                      style={{
+                        color: `${s.accent}25`,
+                        fontFamily: "var(--font-heading)",
+                        letterSpacing: "-3px",
+                      }}
+                    >
+                      {s.number}
+                    </span>
                   </div>
-                  <p
-                    className="text-gray-600 leading-relaxed text-base"
-                    style={{ whiteSpace: "pre-line", lineHeight: 1.85 }}
-                  >
-                    {content[s.textKey]}
-                  </p>
+
+                  {/* Text content */}
+                  <div className="flex-1 px-8 py-10">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div
+                        className="w-1 h-8 rounded-full flex-shrink-0"
+                        style={{ background: s.accent }}
+                      />
+                      <h2
+                        className="font-black text-2xl"
+                        style={{
+                          color: "var(--color-primary)",
+                          fontFamily: "var(--font-heading)",
+                        }}
+                      >
+                        {content[s.titleKey]}
+                      </h2>
+                    </div>
+                    <p
+                      className="text-gray-600 leading-relaxed text-base"
+                      style={{ whiteSpace: "pre-line", lineHeight: 1.85 }}
+                    >
+                      {content[s.textKey]}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </section>
+        );
+      })}
 
       {/* ── Mission & Vision ── */}
       {(content["about.missionTitle"] || content["about.visionTitle"]) && (

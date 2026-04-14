@@ -1,12 +1,32 @@
 import { sendPasswordResetEmail } from "firebase/auth";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { auth, db } from "../firebase/config";
+import { useThemeContext } from "../context/ThemeContext";
+import { auth } from "../firebase/config";
+
+const hexToRgb = (hex: string) => {
+  const clean = hex.replace("#", "").trim();
+  if (clean.length !== 6) return null;
+  const r = Number.parseInt(clean.slice(0, 2), 16);
+  const g = Number.parseInt(clean.slice(2, 4), 16);
+  const b = Number.parseInt(clean.slice(4, 6), 16);
+  if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+  return { r, g, b };
+};
+
+const withAlpha = (hex: string, alpha: number, fallbackVar: string) => {
+  const rgb = hexToRgb(hex);
+  if (!rgb) {
+    return `color-mix(in srgb, ${fallbackVar} ${Math.round(alpha * 100)}%, transparent)`;
+  }
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+};
 
 const Login: React.FC = () => {
   const { login, role } = useAuth();
+  const { theme } = useThemeContext();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -46,8 +66,8 @@ const Login: React.FC = () => {
   };
 
   const handleForgotPassword = async () => {
-    // Step 1: check email field is filled
-    if (!form.email) {
+    const email = form.email.trim();
+    if (!email) {
       setError("Please enter your email address first.");
       return;
     }
@@ -57,26 +77,26 @@ const Login: React.FC = () => {
     setResetSent(false);
 
     try {
-      // Step 2: check if email exists in Firestore
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", form.email),
-      );
-      const snap = await getDocs(q);
-
-      // Step 3: if not found, show error and stop
-      if (snap.empty) {
-        setError("No account found with this email address.");
-        setResetLoading(false);
-        return;
-      }
-
-      // Step 4: email exists, send reset email
-      await sendPasswordResetEmail(auth, form.email);
+      await sendPasswordResetEmail(auth, email);
       setResetSent(true);
       setError("");
     } catch (err: any) {
-      setError("Could not send reset email. Please try again.");
+      const code = String(err?.code || err?.message || "");
+      if (code.includes("auth/invalid-email")) {
+        setError("Please enter a valid email address.");
+      } else if (code.includes("auth/too-many-requests")) {
+        setError("Too many attempts. Please wait and try again.");
+      } else if (code.includes("auth/network-request-failed")) {
+        setError(
+          "Network error. Check your internet connection and try again.",
+        );
+      } else if (code.includes("auth/operation-not-allowed")) {
+        setError(
+          "Password reset is not enabled in Firebase Authentication settings.",
+        );
+      } else {
+        setError("Could not send reset email. Please try again.");
+      }
     } finally {
       setResetLoading(false);
     }
@@ -88,53 +108,114 @@ const Login: React.FC = () => {
       navigate("/collaborator-portal", { replace: true });
   }, [role]);
 
+  const pageBg = "var(--color-bg)";
+  const cardBg = withAlpha(theme.backgroundColor, 0.92, "var(--color-bg)");
+  const textStrong = "var(--color-primary)";
+  const textMuted = withAlpha(theme.primaryColor, 0.62, "var(--color-primary)");
+  const textSoft = withAlpha(theme.primaryColor, 0.78, "var(--color-primary)");
+  const borderColor = withAlpha(
+    theme.primaryColor,
+    0.2,
+    "var(--color-primary)",
+  );
+  const raisedShadow = `10px 10px 20px ${withAlpha(theme.primaryColor, 0.2, "var(--color-primary)")}, -10px -10px 20px ${withAlpha(theme.backgroundColor, 0.55, "var(--color-bg)")}`;
+  const insetShadow = `inset 6px 6px 10px ${withAlpha(theme.primaryColor, 0.18, "var(--color-primary)")}, inset -6px -6px 10px ${withAlpha(theme.backgroundColor, 0.82, "var(--color-bg)")}`;
+  const successFg = "var(--color-secondary)";
+  const successBg = withAlpha(
+    theme.secondaryColor,
+    0.14,
+    "var(--color-secondary)",
+  );
+  const successBorder = withAlpha(
+    theme.secondaryColor,
+    0.28,
+    "var(--color-secondary)",
+  );
+  const errorFg = "var(--color-accent)";
+  const errorBg = withAlpha(theme.accentColor, 0.14, "var(--color-accent)");
+  const errorBorder = withAlpha(theme.accentColor, 0.3, "var(--color-accent)");
+  const emailFilled = form.email.trim().length > 0;
+  const passwordFilled = form.password.length > 0;
+
   return (
     <div
-      className="min-h-[80vh] flex items-center justify-center px-4"
-      style={{ background: "var(--color-bg)" }}
+      className="min-h-[80vh] flex items-center justify-center px-4 py-8"
+      style={{ background: pageBg }}
     >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div
-          className="px-8 py-7 text-center"
-          style={{ background: "var(--color-primary)" }}
-        >
+      <div
+        className="w-full max-w-md rounded-[28px] px-8 py-10"
+        style={{ background: cardBg, boxShadow: raisedShadow }}
+      >
+        <div className="flex justify-center">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: cardBg, boxShadow: raisedShadow }}
+          >
+            <User size={28} color={textMuted} strokeWidth={2.2} />
+          </div>
+        </div>
+
+        <div className="text-center mt-6 mb-7">
           <h1
-            className="text-white font-black text-2xl mb-1"
-            style={{ fontFamily: "var(--font-heading)" }}
+            className="font-black text-[2rem] leading-none"
+            style={{ color: textStrong, fontFamily: "var(--font-heading)" }}
           >
             Portal Login
           </h1>
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+          <p className="text-sm mt-2" style={{ color: textMuted }}>
             Syed's Lab — Admin & Collaborator Access
           </p>
         </div>
 
-        <form onSubmit={submit} className="px-8 py-8 flex flex-col gap-5">
-          {/* Email Field */}
+        <form onSubmit={submit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+            <label
+              className="block text-xs font-semibold mb-1.5"
+              style={{ color: textSoft }}
+            >
               Email
             </label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, email: e.target.value }))
-              }
-              className="w-full px-4 py-2.5 text-sm rounded-xl border outline-none"
-              style={{ borderColor: "#d1d5db" }}
-              placeholder="you@example.com"
-            />
+            <div className="relative">
+              <span
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center pointer-events-none"
+                style={{ color: textMuted }}
+              >
+                <Mail size={16} strokeWidth={2.2} />
+              </span>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, email: e.target.value }))
+                }
+                className="w-full pl-10 pr-4 py-3 text-sm rounded-2xl outline-none"
+                style={{
+                  color: textStrong,
+                  background: cardBg,
+                  border: `1px solid ${borderColor}`,
+                  boxShadow: emailFilled ? raisedShadow : insetShadow,
+                  transition: "box-shadow 220ms ease, border-color 220ms ease",
+                }}
+                placeholder="Email address"
+              />
+            </div>
           </div>
 
-          {/* Password Field */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+            <label
+              className="block text-xs font-semibold mb-1.5"
+              style={{ color: textSoft }}
+            >
               Password
             </label>
             <div className="relative">
+              <span
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center pointer-events-none"
+                style={{ color: textMuted }}
+              >
+                <Lock size={16} strokeWidth={2.2} />
+              </span>
               <input
                 type={showPassword ? "text" : "password"}
                 required
@@ -142,29 +223,36 @@ const Login: React.FC = () => {
                 onChange={(e) =>
                   setForm((p) => ({ ...p, password: e.target.value }))
                 }
-                className="w-full px-4 py-2.5 text-sm rounded-xl border outline-none pr-10"
-                style={{ borderColor: "#d1d5db" }}
-                placeholder="••••••••"
+                className="w-full pl-10 pr-14 py-3 text-sm rounded-2xl outline-none hide-password-reveal"
+                style={{
+                  color: textStrong,
+                  background: cardBg,
+                  border: `1px solid ${borderColor}`,
+                  boxShadow: passwordFilled ? raisedShadow : insetShadow,
+                  transition: "box-shadow 220ms ease, border-color 220ms ease",
+                }}
+                placeholder="Password"
               />
-              {/* Show/Hide Password Toggle */}
               <button
                 type="button"
                 onClick={() => setShowPassword((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center p-0 leading-none"
                 style={{
-                  background: "none",
+                  background: "transparent",
                   border: "none",
+                  boxShadow: "none",
                   cursor: "pointer",
-                  fontSize: 16,
-                  lineHeight: 1,
                 }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword ? (
+                  <EyeOff size={16} color={textSoft} strokeWidth={2.2} />
+                ) : (
+                  <Eye size={16} color={textSoft} strokeWidth={2.2} />
+                )}
               </button>
             </div>
-
-            {/* Forgot Password link */}
-            <div className="text-right mt-1.5">
+            <div className="text-right mt-2">
               <button
                 type="button"
                 onClick={handleForgotPassword}
@@ -182,35 +270,50 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {/* Success message */}
           {resetSent && (
-            <p className="text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">
-              Password reset email sent. Check your inbox and spam.
+            <p
+              className="text-sm px-4 py-2.5 rounded-xl"
+              style={{
+                color: successFg,
+                background: successBg,
+                border: `1px solid ${successBorder}`,
+              }}
+            >
+              Reset request submitted. If this email is registered in Firebase
+              Authentication, you will receive a password reset email shortly.
+              Check inbox and spam.
             </p>
           )}
 
-          {/* Error message */}
           {error && (
-            <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">
+            <p
+              className="text-sm px-4 py-2.5 rounded-xl"
+              style={{
+                color: errorFg,
+                background: errorBg,
+                border: `1px solid ${errorBorder}`,
+              }}
+            >
               {error}
             </p>
           )}
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full font-black py-3 rounded-xl text-white text-sm disabled:opacity-60 mt-1"
+            className="w-full font-black py-3 rounded-2xl text-sm disabled:opacity-60 mt-1"
             style={{
-              background: "var(--color-primary)",
-              border: "none",
+              color: textStrong,
+              background: cardBg,
+              border: `1px solid ${borderColor}`,
+              boxShadow: raisedShadow,
               cursor: "pointer",
             }}
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
 
-          <p className="text-center text-xs text-gray-400 mt-2">
+          <p className="text-center text-xs mt-2" style={{ color: textMuted }}>
             Not a collaborator yet?{" "}
             <a
               href="/collaborators"

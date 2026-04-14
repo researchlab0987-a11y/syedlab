@@ -15,6 +15,7 @@
 import { db } from "../firebase/config";
 import type {
   ChatConversation,
+  ChatKeyBundle,
   ChatMessage,
   EncryptedMessagePayload,
 } from "./types";
@@ -242,6 +243,52 @@ export const getUserChatPublicKey = async (uid: string) => {
   if (!snap.exists()) return null;
   const data = snap.data() as { chatPublicKeyJwk?: JsonWebKey };
   return data.chatPublicKeyJwk ?? null;
+};
+
+/**
+ * Stores the complete key bundle in Firestore for cross-device access.
+ * Both private and public keys are stored (private key is secured by Firestore rules).
+ */
+export const upsertUserChatKeyBundle = async (
+  uid: string,
+  keyBundle: ChatKeyBundle,
+) => {
+  await setDoc(
+    doc(db, "users", uid),
+    {
+      chatPrivateKeyJwk: keyBundle.privateKeyJwk,
+      chatPublicKeyJwk: keyBundle.publicKeyJwk,
+      chatKeyCreatedAt: keyBundle.createdAt,
+      chatKeyUpdatedAt: new Date().toISOString(),
+    },
+    { merge: true },
+  );
+};
+
+/**
+ * Retrieves the complete key bundle from Firestore.
+ * Returns null if no key bundle exists (user hasn't been provisioned yet).
+ */
+export const getUserChatKeyBundle = async (
+  uid: string,
+): Promise<ChatKeyBundle | null> => {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return null;
+
+  const data = snap.data() as {
+    chatPrivateKeyJwk?: JsonWebKey;
+    chatPublicKeyJwk?: JsonWebKey;
+    chatKeyCreatedAt?: string;
+  };
+
+  if (!data.chatPrivateKeyJwk || !data.chatPublicKeyJwk) return null;
+
+  return {
+    algorithm: "RSA-OAEP",
+    publicKeyJwk: data.chatPublicKeyJwk,
+    privateKeyJwk: data.chatPrivateKeyJwk,
+    createdAt: data.chatKeyCreatedAt || new Date().toISOString(),
+  };
 };
 
 export const setTypingStatus = async (

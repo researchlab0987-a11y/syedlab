@@ -34,25 +34,25 @@ const Footer: React.FC = () => {
       href: content["labhead.linkedin"],
       label: "LinkedIn",
       icon: "linkedin" as AppIconName,
-      color: "#0a66c2",
+      color: "#ffffff",
     },
     {
       href: content["labhead.scholar"],
       label: "Scholar",
       icon: "scholar" as AppIconName,
-      color: "#4285f4",
+      color: "#ffffff",
     },
     {
       href: content["labhead.orcid"],
       label: "ORCID",
       icon: "orcid" as AppIconName,
-      color: "#a6ce39",
+      color: "#ffffff",
     },
     {
       href: content["labhead.researchgate"],
       label: "ResearchGate",
       icon: "researchgate" as AppIconName,
-      color: "#00d2d3",
+      color: "#ffffff",
     },
   ].filter((s) => s.href);
 

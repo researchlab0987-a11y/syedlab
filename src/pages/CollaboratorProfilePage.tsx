@@ -41,6 +41,30 @@ const CollaboratorProfilePage: React.FC = () => {
     );
   }
 
+  const socialLinks = [
+    {
+      href: collaborator.linkedin,
+      label: "LinkedIn",
+      icon: "linkedin" as const,
+    },
+    {
+      href: collaborator.scholar,
+      label: "Google Scholar",
+      icon: "scholar" as const,
+    },
+    { href: collaborator.orcid, label: "ORCID", icon: "orcid" as const },
+    {
+      href: collaborator.researchgate,
+      label: "ResearchGate",
+      icon: "researchgate" as const,
+    },
+    {
+      href: collaborator.facebook,
+      label: "Facebook",
+      icon: "facebook" as const,
+    },
+  ].filter((link) => link.href);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       <div
@@ -95,6 +119,44 @@ const CollaboratorProfilePage: React.FC = () => {
                 >
                   {interest}
                 </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {socialLinks.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-2">Profiles</h3>
+            <div className="flex items-center gap-2">
+              {socialLinks.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={link.label}
+                  className="no-underline rounded-lg flex items-center justify-center transition-all"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    background: "#ffffff",
+                    border: "1px solid #111827",
+                    color: "#111827",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.transform =
+                      "translateY(-2px)";
+                    (e.currentTarget as HTMLElement).style.boxShadow =
+                      "0 4px 12px rgba(17,24,39,0.25)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.transform =
+                      "translateY(0)";
+                    (e.currentTarget as HTMLElement).style.boxShadow = "none";
+                  }}
+                >
+                  <AppIcon name={link.icon} size={16} />
+                </a>
               ))}
             </div>
           </div>

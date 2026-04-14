@@ -1,26 +1,19 @@
-import { addDoc, collection } from "firebase/firestore";
 import React, { useMemo, useState } from "react";
-import AppIcon, { type AppIconName } from "../components/AppIcon";
-import CloudinaryUpload from "../components/CloudinaryUpload";
 import CollaboratorCard from "../components/CollaboratorCard";
-import { db } from "../firebase/config";
+import CollaboratorProfileDetail from "../components/CollaboratorProfileDetail";
+import CollaboratorRequestForm from "../components/CollaboratorRequestForm";
 import {
   useCollaborators,
   usePublications,
   useSiteContent,
 } from "../firebase/hooks";
-import type {
-  CloudinaryUploadResult,
-  CollaboratorProfile,
-  CollaboratorPublication,
-} from "../types";
+import type { CollaboratorProfile, CollaboratorPublication } from "../types";
 
 const Collaborators: React.FC = () => {
   const { collaborators, loading } = useCollaborators();
   const { ongoing, published } = usePublications();
   const { content } = useSiteContent();
   const [selected, setSelected] = useState<CollaboratorProfile | null>(null);
-  const [showForm, setShowForm] = useState(false);
 
   const [designationFilter, setDesignationFilter] = useState("");
   const [affiliationFilter, setAffiliationFilter] = useState("");
@@ -135,7 +128,7 @@ const Collaborators: React.FC = () => {
 
   if (selected)
     return (
-      <CollaboratorDetail
+      <CollaboratorProfileDetail
         c={selected}
         linkedPublications={selectedLinkedPublications}
         onBack={() => setSelected(null)}
@@ -204,6 +197,23 @@ const Collaborators: React.FC = () => {
           >
             {content["collaborators.pageSubtitle"] ?? ""}
           </p>
+          <button
+            onClick={() => {
+              document
+                .getElementById("collaborator-request")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="mt-6 font-bold px-8 py-3 rounded-xl text-sm"
+            style={{
+              background: "var(--color-accent)",
+              color: "#1f2937",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+            }}
+          >
+            {content["collaborators.requestCta"] ?? "Become a Collaborator"}
+          </button>
         </div>
       </section>
 
@@ -306,501 +316,52 @@ const Collaborators: React.FC = () => {
             ))}
           </div>
         )}
-
-        {/* Join CTA */}
-        <div className="bg-white rounded-2xl p-10 shadow-md text-center max-w-2xl mx-auto">
-          <h2
-            className="font-black text-2xl mb-3"
-            style={{
-              color: "var(--color-primary)",
-              fontFamily: "var(--font-heading)",
-            }}
-          >
-            {content["collaborators.requestTitle"] ?? "Become a Collaborator"}
-          </h2>
-          <p className="text-gray-600 text-sm leading-relaxed mb-6">
-            {content["collaborators.requestSubtitle"] ??
-              "Interested in joining our research community? Submit a request and our admin will review your profile."}
-          </p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="font-bold px-8 py-3 rounded-xl text-white text-sm"
-            style={{
-              background: "var(--color-primary)",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            {content["collaborators.requestCta"] ?? "Submit Request"}
-          </button>
-        </div>
       </div>
 
-      {showForm && <RequestModal onClose={() => setShowForm(false)} />}
-    </div>
-  );
-};
-
-// ── Full profile detail ────────────────────────────────────────
-const CollaboratorDetail: React.FC<{
-  c: CollaboratorProfile;
-  linkedPublications: CollaboratorPublication[];
-  onBack: () => void;
-}> = ({ c, linkedPublications, onBack }) => {
-  const [imgErr, setImgErr] = useState(false);
-  const mergedPublications = useMemo(() => {
-    const all = [...(c.publications ?? []), ...linkedPublications];
-    const seen = new Set<string>();
-
-    const unique = all.filter((item) => {
-      const key = `${item.id ?? ""}::${item.title.trim().toLowerCase()}::${
-        item.year ?? 0
-      }::${(item.url ?? "").trim().toLowerCase()}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    return unique.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
-  }, [c.publications, linkedPublications]);
-
-  const initials = c.name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  return (
-    <div>
-      <div
-        className="py-16 px-4 text-center"
-        style={{ background: "var(--color-primary)" }}
+      <section
+        id="collaborator-request"
+        className="px-4 py-14"
+        style={{
+          background: "#f8fafc",
+          borderTop: "1px solid #e5e7eb",
+        }}
       >
-        {c.photo && !imgErr ? (
-          <img
-            src={c.photo}
-            alt={c.name}
-            onError={() => setImgErr(true)}
-            className="w-32 h-32 rounded-full object-cover border-4 border-white mx-auto mb-4"
-          />
-        ) : (
-          <div
-            className="w-32 h-32 rounded-full flex items-center justify-center text-white text-4xl font-black border-4 border-white mx-auto mb-4"
-            style={{ background: "var(--color-secondary)" }}
-          >
-            {initials}
-          </div>
-        )}
-        <h1 className="text-white font-black text-3xl">{c.name}</h1>
-        <p
-          className="mt-1"
-          style={{ color: "var(--color-accent)", fontWeight: 700 }}
-        >
-          {c.designation}
-        </p>
-        <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.7)" }}>
-          {c.affiliation}
-        </p>
-      </div>
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <button
-          onClick={onBack}
-          className="text-sm font-bold mb-8 bg-transparent border-none cursor-pointer"
-          style={{ color: "var(--color-secondary)" }}
-        >
-          ← Back to Collaborators
-        </button>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div className="md:col-span-2">
-            <h2
-              className="font-black text-xl mb-3"
-              style={{ color: "var(--color-primary)" }}
-            >
-              About
-            </h2>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-7">
             <p
-              className="text-gray-700 leading-relaxed mb-8"
-              style={{ whiteSpace: "pre-line" }}
+              className="text-xs font-black uppercase tracking-[0.18em]"
+              style={{ color: "#64748b" }}
             >
-              {c.bio}
+              Join the Network
             </p>
-            {c.researchInterests?.length > 0 && (
-              <>
-                <h3
-                  className="font-bold text-base mb-3"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  Research Interests
-                </h3>
-                <div className="flex flex-wrap gap-2 mb-8">
-                  {c.researchInterests.map((r) => (
-                    <span
-                      key={r}
-                      className="text-xs px-3 py-1 rounded-full font-medium"
-                      style={{ background: "#eff6ff", color: "#1d4ed8" }}
-                    >
-                      {r}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-            {mergedPublications.length > 0 && (
-              <>
-                <h3
-                  className="font-bold text-base mb-4"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  Publications
-                </h3>
-                <div className="flex flex-col gap-3">
-                  {mergedPublications.map((p) => (
-                    <div
-                      key={p.id}
-                      className="bg-white rounded-xl p-4 shadow-sm border-l-4"
-                      style={{ borderColor: "var(--color-secondary)" }}
-                    >
-                      {p.url ? (
-                        <a
-                          href={p.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-bold text-sm no-underline hover:underline"
-                          style={{ color: "var(--color-primary)" }}
-                        >
-                          {p.title}
-                        </a>
-                      ) : (
-                        <p
-                          className="font-bold text-sm"
-                          style={{ color: "var(--color-primary)" }}
-                        >
-                          {p.title}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        {p.journal} · {p.year}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-          <div>
-            <h3
-              className="font-bold text-base mb-4"
-              style={{ color: "var(--color-primary)" }}
-            >
-              Links
-            </h3>
-            <div className="flex flex-col gap-2">
-              {[
-                {
-                  href: c.linkedin,
-                  label: "LinkedIn",
-                  icon: "linkedin" as AppIconName,
-                  color: "#0a66c2",
-                },
-                {
-                  href: c.scholar,
-                  label: "Google Scholar",
-                  icon: "scholar" as AppIconName,
-                  color: "#4285f4",
-                },
-                {
-                  href: c.orcid,
-                  label: "ORCID",
-                  icon: "orcid" as AppIconName,
-                  color: "#a6ce39",
-                },
-                {
-                  href: c.researchgate,
-                  label: "ResearchGate",
-                  icon: "researchgate" as AppIconName,
-                  color: "#00d2d3",
-                },
-                {
-                  href: c.facebook,
-                  label: "Facebook",
-                  icon: "facebook" as AppIconName,
-                  color: "#1877f2",
-                },
-              ]
-                .filter((l) => l.href)
-                .map((l) => (
-                  <a
-                    key={l.label}
-                    href={l.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="no-underline font-bold text-sm px-4 py-2.5 rounded-lg text-white inline-flex items-center justify-center gap-2"
-                    style={{ background: l.color }}
-                  >
-                    <AppIcon name={l.icon} size={14} />
-                    {l.label}
-                  </a>
-                ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const RequestModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    affiliation: "",
-    designation: "",
-    bio: "",
-    photo: "",
-    linkedin: "",
-    orcid: "",
-    scholar: "",
-    researchgate: "",
-    facebook: "",
-    researchInterests: "",
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState("");
-
-  const f = (k: keyof typeof form) => ({
-    value: form[k],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((p) => ({ ...p, [k]: e.target.value })),
-  });
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name || !form.email || !form.bio) {
-      setError("Please fill all required fields.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await addDoc(collection(db, "pendingRequests"), {
-        ...form,
-        researchInterests: form.researchInterests
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        status: "pending",
-        submittedAt: new Date().toISOString(),
-      });
-      setDone(true);
-    } catch {
-      setError("Submission failed. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const inp = "w-full px-3 py-2 text-sm rounded-lg border outline-none";
-  const inpStyle = { borderColor: "#d1d5db" };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4"
-      style={{ background: "rgba(0,0,0,0.55)" }}
-    >
-      <div className="bg-white rounded-2xl w-full max-w-2xl my-8 overflow-hidden shadow-2xl">
-        <div
-          className="flex items-center justify-between px-6 py-4"
-          style={{ background: "var(--color-primary)" }}
-        >
-          <h2 className="text-white font-black text-lg">
-            Collaborator Request
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-white text-2xl bg-transparent border-none cursor-pointer leading-none"
-          >
-            ×
-          </button>
-        </div>
-
-        {done ? (
-          <div className="p-10 text-center">
-            <div className="text-5xl mb-4">🎉</div>
-            <h3
-              className="font-black text-xl mb-2"
-              style={{ color: "var(--color-primary)" }}
-            >
-              Request Submitted!
-            </h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Your application is under review. If approved, you will receive an
-              email with your login credentials.
-            </p>
-            <button
-              onClick={onClose}
-              className="mt-6 font-bold px-6 py-2.5 rounded-lg text-white text-sm"
-              style={{
-                background: "var(--color-primary)",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              Close
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="p-6 flex flex-col gap-4">
-            {/* Info notice — no password needed */}
             <div
-              className="rounded-xl p-3 text-xs text-blue-700"
-              style={{ background: "#eff6ff", border: "1px solid #bfdbfe" }}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <AppIcon name="about" size={12} />
-                No password required. If your request is approved, you will
-                receive an email with your login credentials.
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <LabeledInput label="Full Name *">
-                <input
-                  required
-                  className={inp}
-                  style={inpStyle}
-                  {...f("name")}
-                  placeholder="Dr. Jane Smith"
-                />
-              </LabeledInput>
-              <LabeledInput label="Email *">
-                <input
-                  required
-                  type="email"
-                  className={inp}
-                  style={inpStyle}
-                  {...f("email")}
-                  placeholder="jane@buet.ac.bd"
-                />
-              </LabeledInput>
-              <LabeledInput label="Designation *">
-                <input
-                  required
-                  className={inp}
-                  style={inpStyle}
-                  {...f("designation")}
-                  placeholder="Professor, PhD Student..."
-                />
-              </LabeledInput>
-              <LabeledInput label="Affiliation *">
-                <input
-                  required
-                  className={inp}
-                  style={inpStyle}
-                  {...f("affiliation")}
-                  placeholder="BUET, Dept. of CSE"
-                />
-              </LabeledInput>
-            </div>
-
-            <CloudinaryUpload
-              label="Profile Photo"
-              currentUrl={form.photo}
-              onUpload={(r: CloudinaryUploadResult) =>
-                setForm((p) => ({ ...p, photo: r.secure_url }))
-              }
+              className="mx-auto mt-2 h-1 w-14 rounded-full"
+              style={{ background: "var(--color-accent)" }}
             />
-
-            <LabeledInput label="Bio *">
-              <textarea
-                required
-                rows={4}
-                className={inp}
-                style={{ ...inpStyle, resize: "vertical" }}
-                {...f("bio")}
-                placeholder="Brief description of your background..."
-              />
-            </LabeledInput>
-
-            <LabeledInput label="Research Interests (comma separated)">
-              <input
-                className={inp}
-                style={inpStyle}
-                {...f("researchInterests")}
-                placeholder="Machine Learning, NLP, Computer Vision"
-              />
-            </LabeledInput>
-
-            <div className="grid grid-cols-2 gap-3">
-              {(
-                [
-                  "linkedin",
-                  "orcid",
-                  "scholar",
-                  "researchgate",
-                  "facebook",
-                ] as const
-              ).map((k) => (
-                <LabeledInput
-                  key={k}
-                  label={k.charAt(0).toUpperCase() + k.slice(1)}
-                >
-                  <input
-                    className={inp}
-                    style={inpStyle}
-                    {...f(k)}
-                    placeholder="https://..."
-                  />
-                </LabeledInput>
-              ))}
-            </div>
-
-            {error && <p className="text-sm text-red-500">{error}</p>}
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-sm font-semibold px-5 py-2 rounded-lg border cursor-pointer"
+          </div>
+          <div className="bg-white rounded-2xl p-6 md:p-10 shadow-md max-w-4xl mx-auto">
+            <div className="text-center mb-6">
+              <h2
+                className="font-black text-2xl mb-3"
                 style={{
-                  borderColor: "#d1d5db",
-                  background: "white",
-                  color: "#374151",
+                  color: "var(--color-primary)",
+                  fontFamily: "var(--font-heading)",
                 }}
               >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="text-sm font-bold px-6 py-2 rounded-lg text-white disabled:opacity-60"
-                style={{
-                  background: "var(--color-primary)",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {submitting ? "Submitting..." : "Submit Request"}
-              </button>
+                {content["collaborators.requestTitle"] ??
+                  "Become a Collaborator"}
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                {content["collaborators.requestSubtitle"] ??
+                  "Interested in joining our research community? Submit your request below and our admin will review your profile."}
+              </p>
             </div>
-          </form>
-        )}
-      </div>
+            <CollaboratorRequestForm />
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
-
-const LabeledInput: React.FC<{
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}> = ({ label, children, className }) => (
-  <div className={className}>
-    <label className="block text-xs font-semibold text-gray-600 mb-1">
-      {label}
-    </label>
-    {children}
-  </div>
-);
 
 export default Collaborators;

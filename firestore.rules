@@ -171,6 +171,8 @@ service cloud.firestore {
             'createdAt',
             'presence',
             'chatPublicKeyJwk',
+            'chatPrivateKeyJwk',
+            'chatKeyCreatedAt',
             'chatKeyUpdatedAt'
           ])
         );
@@ -184,6 +186,8 @@ service cloud.firestore {
             'name',
             'presence',
             'chatPublicKeyJwk',
+            'chatPrivateKeyJwk',
+            'chatKeyCreatedAt',
             'chatKeyUpdatedAt'
           ])
         );

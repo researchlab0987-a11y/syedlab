@@ -96,6 +96,19 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Hide browser-native password reveal controls when custom toggle is used. */
+.hide-password-reveal::-ms-reveal,
+.hide-password-reveal::-ms-clear {
+  display: none;
+}
+
+.hide-password-reveal::-webkit-credentials-auto-fill-button,
+.hide-password-reveal::-webkit-textfield-decoration-container {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* ── Animations ─────────────────────────────────────────────── */
 @keyframes fadeInUp {
   from {

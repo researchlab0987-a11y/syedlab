@@ -35,6 +35,16 @@
 } from "lucide-react";
 import React from "react";
 
+const socialLogoByName = {
+  facebook: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/facebook.svg",
+  linkedin: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/linkedin.svg",
+  scholar:
+    "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/googlescholar.svg",
+  orcid: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/orcid.svg",
+  researchgate:
+    "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/researchgate.svg",
+} as const;
+
 export type AppIconName =
   | "home"
   | "about"
@@ -72,7 +82,8 @@ export type AppIconName =
   | "scholar"
   | "orcid"
   | "researchgate"
-  | "facebook";
+  | "facebook"
+  | "search";
 
 const iconMap: Record<AppIconName, LucideIcon> = {
   home: Home,
@@ -112,6 +123,7 @@ const iconMap: Record<AppIconName, LucideIcon> = {
   orcid: IdCard,
   researchgate: Microscope,
   facebook: Users,
+  search: Menu, // You can replace 'Menu' with a more appropriate Lucide icon if desired
 };
 
 interface AppIconProps {
@@ -129,6 +141,28 @@ const AppIcon: React.FC<AppIconProps> = ({
   className,
   style,
 }) => {
+  const socialLogo =
+    socialLogoByName[name as keyof typeof socialLogoByName] ?? null;
+
+  if (socialLogo) {
+    return (
+      <img
+        src={socialLogo}
+        alt={`${name} logo`}
+        width={size}
+        height={size}
+        className={className}
+        style={{
+          width: size,
+          height: size,
+          objectFit: "contain",
+          display: "block",
+          ...style,
+        }}
+      />
+    );
+  }
+
   const Icon = iconMap[name];
   return (
     <Icon

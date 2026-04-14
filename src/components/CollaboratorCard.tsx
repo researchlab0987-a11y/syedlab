@@ -23,25 +23,26 @@ const CollaboratorCard: React.FC<Props> = ({ collaborator: c, onClick }) => {
       href: c.linkedin,
       label: "LinkedIn",
       icon: "linkedin" as const,
-      color: "#0a66c2",
     },
     {
       href: c.scholar,
       label: "Google Scholar",
       icon: "scholar" as const,
-      color: "#4285f4",
     },
     {
       href: c.orcid,
       label: "ORCID",
       icon: "orcid" as const,
-      color: "#a6ce39",
     },
     {
       href: c.researchgate,
       label: "ResearchGate",
       icon: "researchgate" as const,
-      color: "#00d2d3",
+    },
+    {
+      href: c.facebook,
+      label: "Facebook",
+      icon: "facebook" as const,
     },
   ].filter((s) => s.href);
 
@@ -199,9 +200,10 @@ const CollaboratorCard: React.FC<Props> = ({ collaborator: c, onClick }) => {
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 title={s.label}
-                className="no-underline font-black text-white rounded-lg flex items-center justify-center transition-all"
+                className="no-underline font-black text-black rounded-lg flex items-center justify-center transition-all"
                 style={{
-                  background: s.color,
+                  background: "#ffffff",
+                  border: "1px solid #111827",
                   width: 30,
                   height: 30,
                   fontSize: 11,
@@ -210,7 +212,7 @@ const CollaboratorCard: React.FC<Props> = ({ collaborator: c, onClick }) => {
                   (e.currentTarget as HTMLElement).style.transform =
                     "translateY(-2px)";
                   (e.currentTarget as HTMLElement).style.boxShadow =
-                    `0 4px 12px ${s.color}60`;
+                    "0 4px 12px rgba(17,24,39,0.25)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.transform =
